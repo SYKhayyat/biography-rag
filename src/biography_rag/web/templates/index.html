@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>New corpus</h1>
+  <p class="muted">Upload pages about one person (.txt, .md, .html, .pdf; up to {{ opts.max_files }} files, {{ opts.max_upload_mb }} MB).
+    They are chunked, embedded and indexed; then 20 fixed questions are answered only from what is retrieved.</p>
+  <form id="upload-form" class="stack">
+    <label>Person <input name="person" required maxlength="120" placeholder="e.g. Benjamin Franklin"></label>
+    <label>Files <input type="file" name="files" multiple required accept=".txt,.md,.text,.html,.htm,.pdf"></label>
+    <label>Embeddings
+      <select name="embedder">
+        {% for e in opts.embedders %}<option value="{{ e }}" {% if e == opts.default_embedder %}selected{% endif %}>{{ e }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Upload &amp; index</button>
+    <p class="error" id="upload-error" hidden></p>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Corpora</h2>
+  {% if corpora %}
+  <table>
+    <thead><tr><th>Person</th><th>Status</th><th>Docs</th><th>Chunks</th><th>Embedder</th></tr></thead>
+    <tbody>
+    {% for c in corpora %}
+      <tr>
+        <td><a href="/corpora/{{ c.corpus_id }}">{{ c.person }}</a></td>
+        <td><span class="badge {{ c.status }}">{{ c.status }}</span></td>
+        <td>{{ c.documents|length }}</td><td>{{ c.chunk_count }}</td><td><code>{{ c.embedder_id }}</code></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">None yet.</p>{% endif %}
+</section>
+{% endblock %}

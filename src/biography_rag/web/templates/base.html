@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Biography RAG{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">Biography&nbsp;RAG</a>
+    <span class="tag">stories woven only from your sources, every sentence cited</span>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <aside id="chunk-panel" class="panel" hidden>
+    <div class="panel-head"><strong id="chunk-title"></strong><button type="button" id="chunk-close" aria-label="Close">×</button></div>
+    <div id="chunk-body" class="chunk-text"></div>
+  </aside>
+  <script src="/static/app.js"></script>
+</body>
+</html>

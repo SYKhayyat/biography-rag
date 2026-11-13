@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ run.person }} story · Biography RAG{% endblock %}
+{% block content %}
+<section class="card" id="run" data-run="{{ run.run_id }}" data-corpus="{{ run.corpus_id }}">
+  <p><a href="/corpora/{{ run.corpus_id }}">← {{ run.person }}</a></p>
+  <h1 id="run-title">{{ run.person }}</h1>
+  <p class="muted"><code>{{ run.run_id }}</code> · {{ run.provider }} · {{ run.model }} ·
+    <a href="/api/runs/{{ run.run_id }}/log">log (JSONL)</a> · <a href="/api/runs/{{ run.run_id }}">JSON</a></p>
+  <div id="progress" hidden><progress max="1" value="0"></progress> <span id="progress-text"></span></div>
+  <p class="error" id="run-error" hidden></p>
+</section>
+
+<section class="card" id="story-card" hidden>
+  <h2 id="story-heading">Story</h2>
+  <div id="summary" class="summary"></div>
+  <div id="story" class="story"></div>
+  <p class="muted">Click a chunk id to read the source passage.</p>
+</section>
+
+<section class="card" id="audit-card" hidden>
+  <h2>Sentence audit</h2>
+  <p class="muted">Every sentence must cite retrieved chunks. Flagged sentences cite nothing, cite chunks that were never retrieved,
+    contain names or numbers absent from the cited chunks, or were judged unsupported. Those are the likely training-data leaks.</p>
+  <table><thead><tr><th>#</th><th>Sentence</th><th>Verdict</th><th>Support</th><th>Note</th></tr></thead><tbody id="audit"></tbody></table>
+</section>
+
+<section class="card" id="answers-card" hidden>
+  <h2>Per-question answers</h2>
+  <table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Retrieved</th></tr></thead><tbody id="answers"></tbody></table>
+</section>
+{% endblock %}

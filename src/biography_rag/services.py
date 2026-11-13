@@ -121,6 +121,12 @@ class IngestService:
         self._corpora.save(corpus)
         return corpus
 
+    def delete(self, corpus_id: str) -> None:
+        if self._corpora.get(corpus_id) is None:
+            raise NotFound(corpus_id)
+        self._index.delete_corpus(corpus_id)
+        self._corpora.delete(corpus_id)
+
 
 @dataclass(frozen=True)
 class StoryConfig:

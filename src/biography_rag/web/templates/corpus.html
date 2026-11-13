@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ corpus.person }} · Biography RAG{% endblock %}
+{% block content %}
+<section class="card" id="corpus" data-corpus="{{ corpus.corpus_id }}" data-status="{{ corpus.status }}">
+  <h1>{{ corpus.person }}</h1>
+  <p><span class="badge {{ corpus.status }}">{{ corpus.status }}</span>
+    {{ corpus.documents|length }} documents · {{ corpus.chunk_count }} chunks · <code>{{ corpus.embedder_id }}</code></p>
+  {% if corpus.error %}<p class="error">{{ corpus.error }}</p>{% endif %}
+  <details><summary>Documents</summary>
+    <ol>{% for d in corpus.documents %}<li><code>d{{ '%02d' % loop.index }}</code> {{ d }}</li>{% endfor %}</ol>
+  </details>
+</section>
+
+{% if corpus.status == 'ready' %}
+<section class="card">
+  <h2>Weave the story</h2>
+  <p class="muted">Runs the 20 questions below, then weaves the answers into one cited story and audits every sentence.</p>
+  <form id="run-form" class="row">
+    <select name="provider">
+      {% for p in opts.providers %}<option value="{{ p.name }}" {% if p.name == opts.default_provider %}selected{% endif %}>{{ p.label }} · {{ p.model }}</option>{% endfor %}
+    </select>
+    <button type="submit" {% if not opts.providers %}disabled{% endif %}>Generate story</button>
+  </form>
+  <details><summary>The 20 questions</summary><ol>{% for q in queries %}<li>{{ q }}</li>{% endfor %}</ol></details>
+</section>
+
+<section class="card">
+  <h2>Ask one question</h2>
+  <p class="muted">Use this for the canary test: ask something true about {{ corpus.person }} that the sources do not contain. The right answer is “Not in the sources.”</p>
+  <form id="ask-form" class="row">
+    <input name="question" required maxlength="500" placeholder="Question…">
+    <select name="provider">
+      {% for p in opts.providers %}<option value="{{ p.name }}" {% if p.name == opts.default_provider %}selected{% endif %}>{{ p.label }}</option>{% endfor %}
+    </select>
+    <button type="submit" {% if not opts.providers %}disabled{% endif %}>Ask</button>
+  </form>
+  <p class="error" id="action-error" hidden></p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Runs</h2>
+  {% if runs %}
+  <table>
+    <thead><tr><th>Run</th><th>Kind</th><th>Model</th><th>Status</th><th>Traced</th><th>Flagged</th><th>Started</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr>
+        <td><a href="/runs/{{ r.run_id }}"><code>{{ r.run_id }}</code></a></td>
+        <td>{{ r.kind }}</td><td>{{ r.provider }} · {{ r.model }}</td>
+        <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+        <td>{% if r.verification %}{{ (r.verification.traced_ratio * 100)|round|int }}%{% endif %}</td>
+        <td>{% if r.verification %}{{ r.verification.flagged_count }}/{{ r.verification.sentence_count }}{% endif %}</td>
+        <td class="muted">{{ r.created_at[:19]|replace('T', ' ') }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">No runs yet.</p>{% endif %}
+</section>
+{% endblock %}
