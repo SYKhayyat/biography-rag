@@ -4,7 +4,8 @@ The answer prompt makes the model copy, word for word, the snippet text that sta
 before it writes anything. This module checks those quotes against the snippets themselves,
 so "not in the sources" no longer depends on the model choosing to say so:
 
-* no EVIDENCE line whose quote really occurs in the snippet it names -> not in the sources
+* no EVIDENCE line whose quote really occurs in the snippet it names (see ``quote_coverage``)
+  -> not in the sources
   (the model answered from memory and could only point at loosely related text);
 * answer sentences with no citation to a retrieved snippet are dropped;
 * nothing left after that -> not in the sources.
@@ -17,6 +18,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 
 from biography_rag.domain import Chunk
 from biography_rag.rag.citations import cited_ids, split_sentences
@@ -24,8 +26,8 @@ from biography_rag.text import words
 
 _EVIDENCE = re.compile(r"^\s*EVIDENCE:\s*[\"“](.+?)[\"”]\s*\[([^\]]+)\]", re.M | re.I)
 _ANSWER = re.compile(r"^\s*ANSWER:\s*", re.M | re.I)
-_ELLIPSIS = re.compile(r"\.\s*\.\s*\.|…|\[\s*\.\.\.\s*\]")
 MIN_QUOTE_WORDS = 3
+MIN_COVERAGE = 0.9
 
 
 @dataclass(frozen=True)
@@ -40,21 +42,22 @@ def _normal(text: str) -> str:
     return " " + " ".join(words(text)) + " "
 
 
-def check_quote(quote: str, chunk: Chunk) -> bool:
-    """True if the quote occurs word for word in the chunk (case, spacing and punctuation aside).
+def quote_coverage(quote: str, chunk: Chunk) -> float:
+    """Share of the quote's words that appear in the chunk, in order, in runs of MIN_QUOTE_WORDS+.
 
-    Models like to shorten long quotes with "...": each piece must then occur, in order, and
-    pieces under MIN_QUOTE_WORDS are ignored, but at least one piece must be long enough."""
-    text = _normal(chunk.text)
-    pieces = [_normal(p) for p in _ELLIPSIS.split(quote)]
-    pieces = [p for p in pieces if len(p.split()) >= MIN_QUOTE_WORDS]
-    pos = 0
-    for piece in pieces:
-        pos = text.find(piece, pos)
-        if pos < 0:
-            return False
-        pos += len(piece) - 1  # the pieces share no words; keep the boundary space
-    return bool(pieces)
+    Case, spacing and punctuation are ignored. Runs of 3+ words tolerate what real models do
+    to long quotes (drop a footnote number, shorten with "...") but not invented text: a quote
+    whose words are merely scattered through the chunk scores near zero."""
+    q = words(quote)
+    if len(q) < MIN_QUOTE_WORDS:
+        return 0.0
+    matcher = SequenceMatcher(None, q, words(chunk.text), autojunk=False)
+    matched = sum(b.size for b in matcher.get_matching_blocks() if b.size >= MIN_QUOTE_WORDS)
+    return matched / len(q)
+
+
+def check_quote(quote: str, chunk: Chunk) -> bool:
+    return quote_coverage(quote, chunk) >= MIN_COVERAGE
 
 
 def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:

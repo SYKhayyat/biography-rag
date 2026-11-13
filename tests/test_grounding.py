@@ -41,6 +41,18 @@ class TestCheckQuote:
     def test_ellipsis_pieces_must_each_occur_in_order(self, quote, ok):
         assert check_quote(quote, C1) is ok
 
+    def test_tolerates_a_dropped_footnote_marker(self):
+        chunk = Chunk(
+            "d06-0174",
+            "d06",
+            174,
+            "that he should be thus afflicted.12 On the 17th of April, 1790, he quietly expired.",
+        )
+        assert check_quote("he should be thus afflicted. On the 17th of April, 1790, he quietly expired", chunk)
+
+    def test_rejects_words_scattered_through_the_chunk(self):
+        assert not check_quote("Josiah was born a candle-maker in Boston", C1)
+
     def test_word_boundaries(self):
         assert not check_quote("orn in Bosto", C1)
 
