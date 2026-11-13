@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from biography_rag.domain import Chunk, QueryAnswer
 from biography_rag.llm.base import ChatModel, Message
 from biography_rag.rag.citations import cited_ids
+from biography_rag.rag.grounding import gate
 from biography_rag.rag.prompts import NOT_IN_SOURCES_TOKEN, answer_messages, weave_messages
 
 
@@ -17,6 +18,8 @@ class LlmExchange:
 
     messages: list[Message]
     response: str | None
+    evidence: tuple[dict, ...] = ()  # the quotes the model gave and whether each was found
+    gate_note: str | None = None  # why the evidence gate rejected or trimmed the reply
 
 
 def _is_not_in_sources(response: str) -> bool:
@@ -39,7 +42,9 @@ class QueryAnswerer:
         response = self._chat.complete(messages, max_tokens=700)
         if _is_not_in_sources(response):
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange(messages, response)
-        return QueryAnswer(query_id, question, ids, response, cited_ids(response)), LlmExchange(messages, response)
+        result = gate(response, {c.chunk_id: c for c in chunks})
+        exchange = LlmExchange(messages, response, tuple(result.evidence), result.reason)
+        return QueryAnswer(query_id, question, ids, result.answer, result.cited_ids), exchange
 
 
 class StoryWeaver:

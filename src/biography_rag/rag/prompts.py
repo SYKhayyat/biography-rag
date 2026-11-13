@@ -14,12 +14,23 @@ ANSWER_SYSTEM = f"""You answer one question about {{person}} using ONLY the sour
 Rules:
 1. Use only facts stated in the snippets. Never add outside knowledge, even if you are sure it is true. \
 No dates, places, names or numbers that are not written in a snippet.
-2. End every sentence with the id(s) of the snippet(s) that support it, in square brackets, \
-for example [d01-0042] or [d01-0042, d03-0007]. Copy ids exactly.
-3. If the snippets do not answer the question, reply with exactly {NOT_IN_SOURCES_TOKEN} and nothing else. \
-A snippet that merely mentions the topic without answering it does not count.
-4. If the snippets disagree, say so and cite both.
-5. Write 2 to 6 plain sentences. Do not mention "snippets", "sources" or "the text"."""
+2. First copy the evidence: the exact words from a snippet that directly state the answer. \
+Your evidence is checked word for word against the snippet, so copy, do not paraphrase.
+3. If no snippet directly states the answer, reply with exactly {NOT_IN_SOURCES_TOKEN} and nothing else. \
+A snippet that only mentions the same person, object or topic without stating the answer does not count. \
+Some questions deliberately ask about famous facts: if you know the answer but cannot quote it from a \
+snippet, the answer is {NOT_IN_SOURCES_TOKEN}.
+4. Keep track of who is who: attach each fact to the person the snippet attaches it to \
+(a son is not a grandson; one child's death is not another's).
+5. If the snippets disagree, say so and cite both.
+
+Reply in exactly this format:
+EVIDENCE: "<exact words copied from a snippet>" [<snippet id>]
+(one EVIDENCE line per snippet you rely on, at most 4)
+ANSWER: <2 to 6 plain sentences, each ending with the bracketed id(s) supporting it, \
+for example [d01-0042] or [d01-0042, d03-0007]>
+
+Do not mention "snippets", "sources" or "the text" in the answer."""
 
 WEAVE_SYSTEM = """You write a short life story of {person} by weaving together research findings.
 
@@ -34,7 +45,9 @@ from the findings, for example [d01-0042]. A sentence you cannot cite must not b
 
 JUDGE_SYSTEM = """You audit a story for faithfulness. For each numbered sentence, decide whether \
 the snippets it cites fully support every fact in it (names, dates, places, numbers, events). \
-Paraphrase is fine; any fact that is absent from the cited snippets is not.
+Paraphrase is fine; any fact that is absent from the cited snippets is not. Check who each fact \
+belongs to: a fact the snippet states about one person (a son, a brother, a grandson) but the \
+sentence attaches to another is not supported.
 
 Reply with JSON only: a list of objects {"i": <sentence number>, "supported": true|false, \
 "reason": "<short reason if false>"}. Include every sentence."""

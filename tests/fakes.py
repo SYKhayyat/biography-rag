@@ -99,5 +99,5 @@ def extractive_responder(messages: list[Message]) -> str:
     for cid, text in _SNIPPET.findall(user):
         if q_terms & set(content_terms(text)):
             first = re.split(r"(?<=[.!?])\s", text.strip())[0].rstrip(".")
-            return f"{first} [{cid}]."
+            return f'EVIDENCE: "{first}" [{cid}]\nANSWER: {first} [{cid}].'
     return "NOT_IN_SOURCES"

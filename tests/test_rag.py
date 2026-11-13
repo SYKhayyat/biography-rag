@@ -150,10 +150,23 @@ class TestGeneration:
         assert answer.display() == "Not in the sources."
 
     def test_answer_records_citations(self):
-        answer, ex = QueryAnswerer(ScriptedChat(lambda m: "Born in Boston [d01-0000].")).answer(1, "X", "Q?", [C1, C2])
+        reply = 'EVIDENCE: "was born in Boston in 1706" [d01-0000]\nANSWER: Born in Boston [d01-0000].'
+        answer, ex = QueryAnswerer(ScriptedChat(lambda m: reply)).answer(1, "X", "Q?", [C1, C2])
+        assert answer.answer == "Born in Boston [d01-0000]."
         assert answer.cited_ids == ["d01-0000"]
+        assert ex.evidence[0]["found"] and ex.gate_note is None
         assert answer.retrieved_ids == ["d01-0000", "d01-0001"]
         assert "[d01-0000]" in ex.messages[1]["content"]
+
+    def test_answer_from_memory_with_loose_evidence_is_not_in_sources(self):
+        # The canary failure seen in the real run: a famous fact, "supported" by a related snippet.
+        reply = (
+            'EVIDENCE: "the portrait on the hundred-dollar bill" [d01-0000]\n'
+            "ANSWER: His portrait is on the hundred-dollar bill [d01-0000]."
+        )
+        answer, ex = QueryAnswerer(ScriptedChat(lambda m: reply)).answer(1, "X", "Q?", [C1])
+        assert answer.display() == "Not in the sources."
+        assert ex.response == reply and "occurs" in ex.gate_note  # the raw reply is still logged
 
     def test_prompt_forbids_outside_knowledge_and_names_person(self):
         system = answer_messages("Ada Lovelace", "Q?", [C1])[0]["content"]
@@ -207,11 +220,15 @@ class TestStoryService:
         chat.responder = lambda m: (
             '[{"i": 1, "supported": false, "reason": "date not in snippet"}]'
             if m[0]["content"].startswith("You audit")
-            else "He was born on January 17, 1706 in Boston [d01-0000]. He signed the Constitution."
+            else 'EVIDENCE: "was born in Boston on Milk Street" [d01-0000]\n'
+            "ANSWER: He was born on January 17, 1706 in Boston [d01-0000]. He signed the Constitution."
         )
         run = app_parts["story"].ask(corpus.corpus_id, "When was he born?")
-        verdicts = [c.verdict for c in run.verification.checks]
-        assert verdicts == [Verdict.JUDGE_FLAGGED, Verdict.UNCITED]
+        # The gate drops the uncited sentence; the verifier flags the invented day.
+        assert run.story == "He was born on January 17, 1706 in Boston [d01-0000]."
+        assert [c.verdict for c in run.verification.checks] == [Verdict.JUDGE_FLAGGED]
+        query = next(e for e in app_parts["runs"].events(run.run_id) if e["type"] == "query")
+        assert "dropped 1 uncited" in query["gate"] and "Constitution" in query["response"]
 
     def test_run_failure_is_recorded(self, app_parts, bio_file, chat):
         corpus = self.ready(app_parts, bio_file)

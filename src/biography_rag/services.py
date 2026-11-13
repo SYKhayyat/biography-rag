@@ -222,6 +222,8 @@ class StoryService:
             llm_called=bool(exchange.messages),
             prompt=exchange.messages,
             response=exchange.response,
+            evidence=list(exchange.evidence),
+            gate=exchange.gate_note,
             answer=answer_to_dict(answer),
             answer_check=report_to_dict(lexical.report),
         )
