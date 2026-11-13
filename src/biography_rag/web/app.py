@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from biography_rag.rag.queries import QUERIES
 from biography_rag.serialization import corpus_to_dict, run_to_dict
 from biography_rag.services import NotFound, Target, UploadedFile, ValidationError
+from biography_rag.web.auth import SitePasswordMiddleware
 from biography_rag.web.container import Container
 from biography_rag.web.ratelimit import SlidingWindowLimiter
 
@@ -51,6 +52,8 @@ def create_app(container: Container) -> FastAPI:
         container.close()
 
     app = FastAPI(title="Biography RAG", lifespan=lifespan)
+    if settings.site_password:
+        app.add_middleware(SitePasswordMiddleware, password=settings.site_password)
     app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 
     @app.exception_handler(ValidationError)

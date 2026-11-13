@@ -24,9 +24,20 @@ services:
       - key: OPENAI_MODEL
         value: gpt-4.1-mini
       # Optional: a provider shows up in the UI only once its key is set.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: CHEAPLLM_API_KEY
+        sync: false
       - key: QWEN_API_KEY
         sync: false
       - key: DEEPSEEK_API_KEY
+        sync: false
+      # One shared HTTP Basic password for the whole site (empty = open).
+      - key: SITE_PASSWORD
         sync: false
       # Required to delete corpora through the API.
       - key: ADMIN_TOKEN

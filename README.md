@@ -87,6 +87,8 @@ Open http://localhost:8000:
 2. Start a story run.
 3. Open the run page to see the story, the per-question log and the audit.
 
+**Compare models.** The story form and the ask form both take one or more models (**+ add model**, up to `MAX_COMPARE_TARGETS`, default 6). One model is an ordinary run. Several start one run each over the same retrieval and open a comparison page: the stories side by side with time, answered count, traced % and flagged sentences, then a question-by-question table of who answered and which chunks they cited. Every run is still logged and audited on its own. API: `POST /api/corpora/{id}/compare` with `{"kind": "story"|"ask", "question"?, "targets": [{"provider", "model"}]}`. A comparison costs one rate-limit hit per model.
+
 Reproduce the hand-in artefacts:
 
 ```bash
@@ -98,10 +100,20 @@ Tests: `uv run pytest`. The Postgres tests run when `TEST_DATABASE_URL` is set; 
 
 ## Switching providers
 
-- **LLM:**
-  - Set `LLM_PROVIDER` to `openai`, `qwen` or `deepseek`, plus that provider's key. Qwen and DeepSeek go through their OpenAI-compatible endpoints.
-  - The UI offers every provider whose key is set.
-  - The public API accepts only a provider name, never a model name. Models are set in env (`OPENAI_MODEL`, …).
+- **LLM:** every provider speaks the OpenAI chat protocol, so one adapter (`llm/providers.py`) covers them all. The UI offers each provider whose key is set; `LLM_PROVIDER` picks the default.
+
+  | Provider | Env key | Models users can pick |
+  |---|---|---|
+  | OpenAI | `OPENAI_API_KEY` | `OPENAI_MODEL` (default gpt-4.1-mini) |
+  | Groq (free tier) | `GROQ_API_KEY` | openai/gpt-oss-120b, openai/gpt-oss-20b, qwen/qwen3.8-27b |
+  | Google Gemini (free tier) | `GEMINI_API_KEY` | gemini-3.5-flash-lite, falling back to gemini-3.1-flash-lite when its quota runs out |
+  | NVIDIA NIM (free) | `NVIDIA_API_KEY` | nemotron-3-ultra, nemotron-3.5-lightning, laguna-xs-2.1, gpt-oss-20b, gemma-4-31b, muse-glimmer-30b, mistral-large-4, deepseek-v4.1-flash *(slow)*, glm-5.3-flash *(slow)* |
+  | cheapllm.shop | `CHEAPLLM_API_KEY` | deepseek-v4.1-flash-1017 *(slow)* |
+  | Qwen / DeepSeek | `QWEN_API_KEY` / `DEEPSEEK_API_KEY` | `QWEN_MODEL` / `DEEPSEEK_MODEL` |
+
+  - The public API accepts a model only if it is on that provider's list. Anything else is a 422, so a visitor can't point the app at an arbitrary (paid) model.
+  - Completions are streamed, so slow models aren't cut off by gateway idle timeouts. Reasoning is switched off or kept low where the provider allows, and any `<think>` text is stripped.
+  - Each provider has its own timeout, retry budget and concurrency cap, shared by every run.
 - **Embeddings:**
   - `EMBEDDER=openai` (default) or `local` (fastembed; `uv sync --extra local`).
   - A corpus remembers its embedder, so its queries always use the same one.
@@ -109,9 +121,10 @@ Tests: `uv run pytest`. The Postgres tests run when `TEST_DATABASE_URL` is set; 
 ## Deploy (Render)
 
 `render.yaml` is a blueprint for the free Docker web service.
-- Set `DATABASE_URL` (Supabase session pooler, pgvector enabled) and `OPENAI_API_KEY` in the dashboard. They are `sync: false`, so they never touch git.
+- Set `DATABASE_URL` (Supabase session pooler, pgvector enabled) and the provider keys (`OPENAI_API_KEY`, `GROQ_API_KEY`, …) in the dashboard. They are `sync: false`, so they never touch git.
 - `ADMIN_TOKEN` is generated, and is required to delete corpora.
 - Story runs are rate-limited per client.
+- `SITE_PASSWORD`, if set, puts one HTTP Basic password (any username) in front of every page and API route except `/api/health`, so strangers can't spend the free model quotas.
 
 ## Corpus
 
