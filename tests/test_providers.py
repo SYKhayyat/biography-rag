@@ -87,7 +87,8 @@ class TestCatalog:
         factory = ChatModelFactory(settings(gemini_api_key="k"), client_factory=lambda s: FakeClient())
         chat = factory.create("gemini")
         assert isinstance(chat, FallbackChat)
-        assert chat.model == "gemini-3.5-flash-lite → gemini-3.1-flash-lite"
+        assert chat.model == "gemini-3.5-flash-lite"
+        assert [c.model for c in chat.chain] == ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
 
 
 class TestStreamingChat:

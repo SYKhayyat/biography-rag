@@ -112,6 +112,8 @@ def run_to_dict(r: StoryRun) -> dict[str, Any]:
         "verification": report_to_dict(r.verification) if r.verification else None,
         "error": r.error,
         "kind": r.kind,
+        "question": r.question,
+        "comparison_id": r.comparison_id,
         "created_at": _dt(r.created_at),
         "finished_at": _dt(r.finished_at),
     }
@@ -132,6 +134,8 @@ def run_from_dict(d: dict[str, Any]) -> StoryRun:
         verification=report_from_dict(d["verification"]) if d.get("verification") else None,
         error=d.get("error"),
         kind=d.get("kind", "story"),
+        question=d.get("question"),
+        comparison_id=d.get("comparison_id"),
         created_at=_parse_dt(d.get("created_at")) or datetime.now().astimezone(),
         finished_at=_parse_dt(d.get("finished_at")),
     )

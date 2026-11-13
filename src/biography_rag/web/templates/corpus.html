@@ -12,29 +12,35 @@
 </section>
 
 {% if corpus.status == 'ready' %}
+<script id="opts" type="application/json">{{ opts|tojson }}</script>
 <section class="card">
   <h2>Weave the story</h2>
-  <p class="muted">Runs the 20 questions below, then weaves the answers into one cited story and audits every sentence.</p>
-  <form id="run-form" class="row">
-    <select name="provider">
-      {% for p in opts.providers %}<option value="{{ p.name }}" {% if p.name == opts.default_provider %}selected{% endif %}>{{ p.label }} · {{ p.model }}</option>{% endfor %}
-    </select>
-    <button type="submit" {% if not opts.providers %}disabled{% endif %}>Generate story</button>
+  <p class="muted">Runs the 20 questions below, then weaves the answers into one cited story and audits every sentence.
+    Add more models to run them side by side.</p>
+  <form id="run-form" class="target-form" data-kind="story">
+    <div class="targets"></div>
+    <div class="row">
+      <button type="button" class="add-target secondary">+ add model</button>
+      <button type="submit" {% if not opts.providers %}disabled{% endif %}>Generate story</button>
+    </div>
   </form>
   <details><summary>The 20 questions</summary><ol>{% for q in queries %}<li>{{ q }}</li>{% endfor %}</ol></details>
 </section>
 
 <section class="card">
   <h2>Ask one question</h2>
-  <p class="muted">Use this for the canary test: ask something true about {{ corpus.person }} that the sources do not contain. The right answer is “Not in the sources.”</p>
-  <form id="ask-form" class="row">
-    <input name="question" required maxlength="500" placeholder="Question…">
-    <select name="provider">
-      {% for p in opts.providers %}<option value="{{ p.name }}" {% if p.name == opts.default_provider %}selected{% endif %}>{{ p.label }}</option>{% endfor %}
-    </select>
-    <button type="submit" {% if not opts.providers %}disabled{% endif %}>Ask</button>
+  <p class="muted">Use this for the canary test: ask something true about {{ corpus.person }} that the sources do not contain.
+    The right answer is “Not in the sources.” Add models to see which ones stay honest.</p>
+  <form id="ask-form" class="target-form" data-kind="ask">
+    <div class="row"><input name="question" required maxlength="500" placeholder="Question…"></div>
+    <div class="targets"></div>
+    <div class="row">
+      <button type="button" class="add-target secondary">+ add model</button>
+      <button type="submit" {% if not opts.providers %}disabled{% endif %}>Ask</button>
+    </div>
   </form>
   <p class="error" id="action-error" hidden></p>
+  <p class="muted small">Models marked <em>slow</em> queue on the provider's side and can take several minutes per call.</p>
 </section>
 {% endif %}
 
@@ -47,7 +53,8 @@
     {% for r in runs %}
       <tr>
         <td><a href="/runs/{{ r.run_id }}"><code>{{ r.run_id }}</code></a></td>
-        <td>{{ r.kind }}</td><td>{{ r.provider }} · {{ r.model }}</td>
+        <td>{{ r.kind }}{% if r.comparison_id %} · <a href="/corpora/{{ corpus.corpus_id }}/compare/{{ r.comparison_id }}">compare</a>{% endif %}</td>
+        <td>{{ r.provider }} · {{ r.model }}</td>
         <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
         <td>{% if r.verification %}{{ (r.verification.traced_ratio * 100)|round|int }}%{% endif %}</td>
         <td>{% if r.verification %}{{ r.verification.flagged_count }}/{{ r.verification.sentence_count }}{% endif %}</td>

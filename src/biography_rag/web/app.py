@@ -7,7 +7,7 @@ import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from biography_rag.rag.queries import QUERIES
 from biography_rag.serialization import corpus_to_dict, run_to_dict
-from biography_rag.services import NotFound, UploadedFile, ValidationError
+from biography_rag.services import NotFound, Target, UploadedFile, ValidationError
 from biography_rag.web.container import Container
 from biography_rag.web.ratelimit import SlidingWindowLimiter
 
@@ -26,10 +26,17 @@ HERE = Path(__file__).parent
 
 class RunRequest(BaseModel):
     provider: str | None = Field(default=None, max_length=40)
+    model: str | None = Field(default=None, max_length=80)  # must be on the provider's list
 
 
 class AskRequest(RunRequest):
     question: str = Field(min_length=1, max_length=500)
+
+
+class CompareRequest(BaseModel):
+    kind: Literal["story", "ask"]
+    question: str | None = Field(default=None, max_length=500)
+    targets: list[RunRequest] = Field(min_length=1, max_length=12)  # the service enforces the real cap
 
 
 def create_app(container: Container) -> FastAPI:
@@ -54,12 +61,15 @@ def create_app(container: Container) -> FastAPI:
     async def _missing(_r: Request, exc: NotFound) -> JSONResponse:
         return JSONResponse({"detail": f"not found: {exc}"}, status_code=404)
 
-    def rate_limited(request: Request) -> None:
+    def charge(request: Request, cost: int = 1) -> None:
         client = request.client.host if request.client else "unknown"
-        if not limiter.allow(client):
+        if not limiter.allow(client, cost):
             raise HTTPException(
                 429, "rate limit reached, try again later", headers={"Retry-After": str(limiter.retry_after(client))}
             )
+
+    def rate_limited(request: Request) -> None:
+        charge(request)
 
     def require_admin(x_admin_token: Annotated[str, Header()] = "") -> None:
         if not settings.admin_token or not hmac.compare_digest(x_admin_token, settings.admin_token):
@@ -77,8 +87,26 @@ def create_app(container: Container) -> FastAPI:
             raise NotFound(run_id)
         return run
 
+    def comparison(corpus_id: str, comparison_id: str) -> dict[str, Any]:
+        runs = container.story.comparison(get_corpus(corpus_id).corpus_id, comparison_id)
+        return {
+            "comparison_id": comparison_id,
+            "corpus_id": corpus_id,
+            "kind": runs[0].kind,
+            "question": runs[0].question,
+            "runs": [run_to_dict(r) for r in runs],
+        }
+
     def options() -> dict[str, Any]:
-        providers = [{"name": p.name, "label": p.label, "model": p.model} for p in container.chats.available()]
+        providers = [
+            {
+                "name": p.name,
+                "label": p.label,
+                "model": p.model,
+                "models": [{"id": m.id, "label": m.label, "slow": m.slow} for m in p.models],
+            }
+            for p in container.chats.available()
+        ]
         try:
             default_provider = container.chats.default_provider
         except RuntimeError:
@@ -91,6 +119,7 @@ def create_app(container: Container) -> FastAPI:
             "default_embedder": container.embedders.default if names else None,
             "max_upload_mb": settings.max_upload_mb,
             "max_files": settings.max_files,
+            "max_compare_targets": settings.max_compare_targets,
         }
 
     # --- pages -----------------------------------------------------------
@@ -106,6 +135,11 @@ def create_app(container: Container) -> FastAPI:
         queries = [q.render(corpus.person) for q in QUERIES]
         ctx = {"corpus": corpus_to_dict(corpus), "runs": runs, "opts": options(), "queries": queries}
         return templates.TemplateResponse(request, "corpus.html", ctx)
+
+    @app.get("/corpora/{corpus_id}/compare/{comparison_id}", response_class=HTMLResponse)
+    def compare_page(request: Request, corpus_id: str, comparison_id: str) -> HTMLResponse:
+        ctx = {"corpus": corpus_to_dict(get_corpus(corpus_id)), "cmp": comparison(corpus_id, comparison_id)}
+        return templates.TemplateResponse(request, "compare.html", ctx)
 
     @app.get("/runs/{run_id}", response_class=HTMLResponse)
     def run_page(request: Request, run_id: str) -> HTMLResponse:
@@ -168,13 +202,29 @@ def create_app(container: Container) -> FastAPI:
 
     @app.post("/api/corpora/{corpus_id}/runs", status_code=202, dependencies=[Depends(rate_limited)])
     def start_run(corpus_id: str, body: RunRequest | None = None) -> dict[str, Any]:
-        run = container.story.start(corpus_id, (body or RunRequest()).provider)
+        body = body or RunRequest()
+        run = container.story.start(corpus_id, body.provider, body.model)
         container.jobs.submit(container.story.execute, run.run_id)
         return run_to_dict(container.runs.get(run.run_id) or run)
 
     @app.post("/api/corpora/{corpus_id}/ask", dependencies=[Depends(rate_limited)])
     def ask(corpus_id: str, body: AskRequest) -> dict[str, Any]:
-        return run_to_dict(container.story.ask(corpus_id, body.question, body.provider))
+        return run_to_dict(container.story.ask(corpus_id, body.question, body.provider, body.model))
+
+    @app.post("/api/corpora/{corpus_id}/compare", status_code=202)
+    def compare(request: Request, corpus_id: str, body: CompareRequest) -> dict[str, Any]:
+        """Run the story, or one question, once per picked model. Each model costs one
+        rate-limit hit. With one model this is an ordinary run; `comparison_id` is then null."""
+        charge(request, len(body.targets))
+        targets = [Target(t.provider, t.model) for t in body.targets]
+        runs = container.story.start_many(corpus_id, body.kind, targets, body.question)
+        for run in runs:
+            container.jobs.submit(container.story.execute, run.run_id)
+        return {"comparison_id": runs[0].comparison_id, "run_ids": [r.run_id for r in runs]}
+
+    @app.get("/api/corpora/{corpus_id}/comparisons/{comparison_id}")
+    def comparison_detail(corpus_id: str, comparison_id: str) -> dict[str, Any]:
+        return comparison(corpus_id, comparison_id)
 
     @app.get("/api/runs/{run_id}")
     def run_detail(run_id: str) -> dict[str, Any]:

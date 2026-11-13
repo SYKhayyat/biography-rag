@@ -133,6 +133,15 @@ class StoryConfig:
     retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
     concurrency: int = 4
     verify_with_llm: bool = True
+    max_compare_targets: int = 6
+
+
+@dataclass(frozen=True)
+class Target:
+    """One model to run: a provider and (optionally) one of that provider's listed models."""
+
+    provider: str | None = None
+    model: str | None = None
 
 
 class StoryService:
@@ -165,22 +174,44 @@ class StoryService:
             raise ValidationError(f"corpus is {corpus.status.value}, not ready")
         return corpus
 
-    def _new_run(self, corpus: Corpus, provider: str | None, model: str | None, kind: str, total: int) -> StoryRun:
+    def _check_target(self, target: Target) -> tuple[str, str]:
         try:
-            chat = self._chats.create(provider, model)
+            chat = self._chats.create(target.provider, target.model)
         except (ValueError, RuntimeError) as exc:
             raise ValidationError(str(exc)) from exc
+        return chat.provider, chat.model
+
+    def _new_run(
+        self,
+        corpus: Corpus,
+        target: Target,
+        kind: str,
+        total: int,
+        *,
+        question: str | None = None,
+        comparison_id: str | None = None,
+    ) -> StoryRun:
+        provider, model = self._check_target(target)
         run = StoryRun(
             run_id=_new_id("r"),
             corpus_id=corpus.corpus_id,
             person=corpus.person,
-            provider=chat.provider,
-            model=chat.model,
+            provider=provider,
+            model=model,
             kind=kind,
             total=total,
+            question=question,
+            comparison_id=comparison_id,
         )
         self._runs.save(run)
         return run
+
+    @staticmethod
+    def _clean_question(question: str) -> str:
+        question = " ".join(question.split())
+        if not question or len(question) > 500:
+            raise ValidationError("ask a question of 1-500 characters")
+        return question
 
     def _verifier(self, provider: str, model: str) -> Verifier:
         lexical = LexicalVerifier()
@@ -243,6 +274,8 @@ class StoryService:
             run.run_id,
             "run_started",
             kind=run.kind,
+            question=run.question,
+            comparison_id=run.comparison_id,
             corpus_id=corpus.corpus_id,
             person=corpus.person,
             embedder=corpus.embedder_id,
@@ -258,10 +291,47 @@ class StoryService:
             verify_with_llm=self._config.verify_with_llm,
         )
 
-    # --- the 20-question story --------------------------------------------
+    # --- starting runs -------------------------------------------------------
     def start(self, corpus_id: str, provider: str | None = None, model: str | None = None) -> StoryRun:
-        return self._new_run(self._ready_corpus(corpus_id), provider, model, "story", len(self._queries))
+        """Queue the 20-question story; `execute` does the work."""
+        return self._new_run(self._ready_corpus(corpus_id), Target(provider, model), "story", len(self._queries))
 
+    def start_ask(
+        self, corpus_id: str, question: str, provider: str | None = None, model: str | None = None
+    ) -> StoryRun:
+        """Queue one ad-hoc question (the canary test)."""
+        question = self._clean_question(question)
+        return self._new_run(self._ready_corpus(corpus_id), Target(provider, model), "ask", 1, question=question)
+
+    def start_many(
+        self, corpus_id: str, kind: str, targets: Sequence[Target], question: str | None = None
+    ) -> list[StoryRun]:
+        """Queue the same story or question once per model, for side-by-side comparison.
+        Every target is checked before any run is created, so a bad one queues nothing."""
+        if kind not in ("story", "ask"):
+            raise ValidationError("kind must be 'story' or 'ask'")
+        limit = self._config.max_compare_targets
+        if not 1 <= len(targets) <= limit:
+            raise ValidationError(f"pick 1 to {limit} models")
+        corpus = self._ready_corpus(corpus_id)
+        question = self._clean_question(question or "") if kind == "ask" else None
+        resolved = [self._check_target(t) for t in targets]
+        if len(set(resolved)) != len(resolved):
+            raise ValidationError("each model may be picked only once")
+        comparison_id = _new_id("c") if len(targets) > 1 else None
+        total = 1 if kind == "ask" else len(self._queries)
+        return [
+            self._new_run(corpus, Target(p, m), kind, total, question=question, comparison_id=comparison_id)
+            for p, m in resolved
+        ]
+
+    def comparison(self, corpus_id: str, comparison_id: str) -> list[StoryRun]:
+        runs = [r for r in self._runs.list_for_corpus(corpus_id) if r.comparison_id == comparison_id]
+        if not runs:
+            raise NotFound(comparison_id)
+        return sorted(runs, key=lambda r: (r.created_at, r.run_id))
+
+    # --- running -------------------------------------------------------------
     def execute(self, run_id: str) -> StoryRun:
         run = self._runs.get(run_id)
         if run is None:
@@ -271,41 +341,11 @@ class StoryService:
         self._runs.save(run)
         self._log_start(run, corpus)
         try:
-            retriever, answerer = self._context(run, corpus)
-            lock = threading.Lock()
-            results: list[tuple[QueryAnswer, list[Chunk]]] = []
-
-            def work(q: QueryTemplate) -> None:
-                result = self._answer_one(run, retriever, answerer, q.query_id, q.render(run.person), q.keywords)
-                with lock:
-                    results.append(result)
-                    run.progress = len(results)
-                    self._runs.save(run)
-
-            with ThreadPoolExecutor(max_workers=self._config.concurrency) as pool:
-                list(pool.map(work, self._queries))  # list() re-raises the first failure
-
-            results.sort(key=lambda r: r[0].query_id)
-            run.answers = [a for a, _ in results]
-            retrieved = {c.chunk_id: c for _, chunks in results for c in chunks}
-            # The weave may only see chunks that an answer actually cited from its own retrieval.
-            cited = sorted(
-                {cid for a in run.answers for cid in a.cited_ids if cid in a.retrieved_ids},
-            )
-            story, exchange = StoryWeaver(self._chats.create(run.provider, run.model)).weave(
-                run.person, run.answers, [retrieved[c] for c in cited]
-            )
-            self._log.log(run.run_id, "weave", prompt=exchange.messages, response=exchange.response)
-
-            result = self._verifier(run.provider, run.model).verify(story, retrieved, set(retrieved))
-            self._log.log(
-                run.run_id,
-                "verification",
-                report=report_to_dict(result.report),
-                judge_prompt=result.judge_messages,
-                judge_response=result.judge_response,
-            )
-            run.story, run.verification, run.status = story, result.report, RunStatus.DONE
+            if run.kind == "ask":
+                self._execute_ask(run, corpus)
+            else:
+                self._execute_story(run, corpus)
+            run.status = RunStatus.DONE
         except Exception as exc:
             log.exception("run %s failed", run_id)
             run.status, run.error = RunStatus.FAILED, str(exc)[:500]
@@ -315,37 +355,55 @@ class StoryService:
         self._log.log(run.run_id, "run_finished", status=run.status.value)
         return run
 
-    # --- one ad-hoc question (the canary test) ---------------------------
+    def _log_verification(self, run: StoryRun, result) -> None:
+        self._log.log(
+            run.run_id,
+            "verification",
+            report=report_to_dict(result.report),
+            judge_prompt=result.judge_messages,
+            judge_response=result.judge_response,
+        )
+
+    def _execute_story(self, run: StoryRun, corpus: Corpus) -> None:
+        retriever, answerer = self._context(run, corpus)
+        lock = threading.Lock()
+        results: list[tuple[QueryAnswer, list[Chunk]]] = []
+
+        def work(q: QueryTemplate) -> None:
+            result = self._answer_one(run, retriever, answerer, q.query_id, q.render(run.person), q.keywords)
+            with lock:
+                results.append(result)
+                run.progress = len(results)
+                self._runs.save(run)
+
+        with ThreadPoolExecutor(max_workers=self._config.concurrency) as pool:
+            list(pool.map(work, self._queries))  # list() re-raises the first failure
+
+        results.sort(key=lambda r: r[0].query_id)
+        run.answers = [a for a, _ in results]
+        retrieved = {c.chunk_id: c for _, chunks in results for c in chunks}
+        # The weave may only see chunks that an answer actually cited from its own retrieval.
+        cited = sorted({cid for a in run.answers for cid in a.cited_ids if cid in a.retrieved_ids})
+        story, exchange = StoryWeaver(self._chats.create(run.provider, run.model)).weave(
+            run.person, run.answers, [retrieved[c] for c in cited]
+        )
+        self._log.log(run.run_id, "weave", prompt=exchange.messages, response=exchange.response)
+
+        result = self._verifier(run.provider, run.model).verify(story, retrieved, set(retrieved))
+        self._log_verification(run, result)
+        run.story, run.verification = story, result.report
+
+    def _execute_ask(self, run: StoryRun, corpus: Corpus) -> None:
+        retriever, answerer = self._context(run, corpus)
+        answer, chunks = self._answer_one(run, retriever, answerer, 0, run.question or "", "")
+        chunk_map = {c.chunk_id: c for c in chunks}
+        result = self._verifier(run.provider, run.model).verify(answer.answer or "", chunk_map, set(chunk_map))
+        self._log_verification(run, result)
+        run.answers, run.story, run.verification, run.progress = [answer], answer.display(), result.report, 1
+
     def ask(self, corpus_id: str, question: str, provider: str | None = None, model: str | None = None) -> StoryRun:
-        question = " ".join(question.split())
-        if not question or len(question) > 500:
-            raise ValidationError("ask a question of 1-500 characters")
-        corpus = self._ready_corpus(corpus_id)
-        run = self._new_run(corpus, provider, model, "ask", 1)
-        run.status = RunStatus.RUNNING
-        self._log_start(run, corpus)
-        try:
-            retriever, answerer = self._context(run, corpus)
-            answer, chunks = self._answer_one(run, retriever, answerer, 0, question, "")
-            chunk_map = {c.chunk_id: c for c in chunks}
-            result = self._verifier(run.provider, run.model).verify(answer.answer or "", chunk_map, set(chunk_map))
-            self._log.log(
-                run.run_id,
-                "verification",
-                report=report_to_dict(result.report),
-                judge_prompt=result.judge_messages,
-                judge_response=result.judge_response,
-            )
-            run.answers, run.story, run.verification = [answer], answer.display(), result.report
-            run.progress, run.status = 1, RunStatus.DONE
-        except Exception as exc:
-            log.exception("ask %s failed", run.run_id)
-            run.status, run.error = RunStatus.FAILED, str(exc)[:500]
-            self._log.log(run.run_id, "run_failed", error=run.error)
-        run.finished_at = utcnow()
-        self._runs.save(run)
-        self._log.log(run.run_id, "run_finished", status=run.status.value)
-        return run
+        """Ask one question and wait for the answer."""
+        return self.execute(self.start_ask(corpus_id, question, provider, model).run_id)
 
     # --- startup housekeeping -------------------------------------------
     def recover_interrupted(self) -> int:

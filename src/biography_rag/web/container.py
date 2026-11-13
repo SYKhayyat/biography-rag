@@ -91,7 +91,12 @@ def build_container(
         embedders,
         chats,
         logger,
-        StoryConfig(retrieval, concurrency=settings.query_concurrency, verify_with_llm=settings.verify_with_llm),
+        StoryConfig(
+            retrieval,
+            concurrency=settings.query_concurrency,
+            verify_with_llm=settings.verify_with_llm,
+            max_compare_targets=settings.max_compare_targets,
+        ),
     )
     return Container(
         settings,

@@ -16,8 +16,9 @@ class SlidingWindowLimiter:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
         self._lock = threading.Lock()
 
-    def allow(self, client: str) -> bool:
-        """Record a hit and say whether it is within the limit. A limit of 0 disables limiting."""
+    def allow(self, client: str, cost: int = 1) -> bool:
+        """Record `cost` hits if they all fit within the limit; otherwise record none.
+        A limit of 0 disables limiting."""
         if self.limit <= 0:
             return True
         now = self._clock()
@@ -25,9 +26,9 @@ class SlidingWindowLimiter:
             hits = self._hits[client]
             while hits and now - hits[0] >= self.window:
                 hits.popleft()
-            if len(hits) >= self.limit:
+            if len(hits) + cost > self.limit:
                 return False
-            hits.append(now)
+            hits.extend([now] * cost)
             return True
 
     def retry_after(self, client: str) -> int:

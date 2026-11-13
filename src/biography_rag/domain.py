@@ -145,5 +145,7 @@ class StoryRun:
     verification: VerificationReport | None = None
     error: str | None = None
     kind: str = "story"  # "story" or "ask"
+    question: str | None = None  # the question, for kind "ask"
+    comparison_id: str | None = None  # runs started together to compare models share this
     created_at: datetime = field(default_factory=utcnow)
     finished_at: datetime | None = None

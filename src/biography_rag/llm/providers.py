@@ -204,7 +204,7 @@ class FallbackChat:
 
     @property
     def model(self) -> str:
-        return " → ".join(c.model for c in self.chain)
+        return self.chain[0].model  # the model that was asked for; fallbacks are logged when used
 
     def complete(self, messages: list[Message], *, max_tokens: int = 1200) -> str:
         last_error: Exception | None = None

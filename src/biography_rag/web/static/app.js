@@ -25,7 +25,7 @@ function withCitations(text) {
 
 // --- chunk side panel ------------------------------------------------------
 function corpusId() {
-  return ($("#run") || $("#corpus"))?.dataset.corpus;
+  return ($("#run") || $("#compare") || $("#corpus"))?.dataset.corpus;
 }
 
 document.addEventListener("click", async (ev) => {
@@ -77,36 +77,87 @@ async function postJson(url, data) {
   return api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
 }
 
-$("#run-form")?.addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  const button = $("button", ev.target);
-  button.disabled = true;
-  try {
-    const run = await postJson(`/api/corpora/${corpusEl.dataset.corpus}/runs`, { provider: ev.target.provider.value });
-    location.href = `/runs/${run.run_id}`;
-  } catch (err) {
-    showError($("#action-error"), err);
-    button.disabled = false;
-  }
-});
+// Model rows: each form holds one or more (provider, model) pairs. One pair is an ordinary
+// run; several start a side-by-side comparison.
+const OPTS = $("#opts") ? JSON.parse($("#opts").textContent) : null;
 
-$("#ask-form")?.addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  const button = $("button", ev.target);
-  button.disabled = true;
-  button.textContent = "Asking…";
-  try {
-    const run = await postJson(`/api/corpora/${corpusEl.dataset.corpus}/ask`, {
-      question: ev.target.question.value,
-      provider: ev.target.provider.value,
-    });
-    location.href = `/runs/${run.run_id}`;
-  } catch (err) {
-    showError($("#action-error"), err);
-    button.disabled = false;
-    button.textContent = "Ask";
-  }
-});
+function modelOptions(providerName, selected) {
+  const p = OPTS.providers.find((x) => x.name === providerName);
+  return (p?.models || []).map((m) =>
+    `<option value="${esc(m.id)}" ${m.id === selected ? "selected" : ""}>${esc(m.label)}</option>`).join("");
+}
+
+function addTarget(form, provider = OPTS.default_provider, model = null) {
+  const list = $(".targets", form);
+  const row = document.createElement("div");
+  row.className = "row target";
+  row.innerHTML = `
+    <select name="provider" aria-label="Provider">${OPTS.providers.map((p) =>
+      `<option value="${esc(p.name)}" ${p.name === provider ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select>
+    <select name="model" aria-label="Model">${modelOptions(provider, model)}</select>
+    <button type="button" class="remove-target secondary" aria-label="Remove this model">×</button>`;
+  list.append(row);
+  syncTargets(form);
+}
+
+function syncTargets(form) {
+  const rows = [...form.querySelectorAll(".target")];
+  rows.forEach((r) => { $(".remove-target", r).hidden = rows.length === 1; });
+  $(".add-target", form).disabled = rows.length >= OPTS.max_compare_targets;
+  const submit = $("button[type=submit]", form);
+  const base = form.dataset.kind === "ask" ? "Ask" : "Generate story";
+  submit.textContent = rows.length > 1 ? `${base} with ${rows.length} models` : base;
+}
+
+function targetsOf(form) {
+  return [...form.querySelectorAll(".target")].map((r) => ({
+    provider: $("[name=provider]", r).value,
+    model: $("[name=model]", r).value || null,
+  }));
+}
+
+for (const form of document.querySelectorAll(".target-form")) {
+  if (!OPTS?.providers.length) break;
+  addTarget(form);
+  form.addEventListener("change", (ev) => {
+    if (ev.target.name === "provider") {
+      $("[name=model]", ev.target.closest(".target")).innerHTML = modelOptions(ev.target.value);
+    }
+  });
+  form.addEventListener("click", (ev) => {
+    if (ev.target.closest(".add-target")) {
+      const last = [...form.querySelectorAll(".target")].pop();
+      addTarget(form, $("[name=provider]", last).value);
+      // default the new row to the next model of the same provider, so "+" reads as "also try"
+      const sel = $("[name=model]", [...form.querySelectorAll(".target")].pop());
+      const prev = $("[name=model]", last).selectedIndex;
+      if (sel.options.length > 1) sel.selectedIndex = (prev + 1) % sel.options.length;
+    }
+    if (ev.target.closest(".remove-target")) {
+      ev.target.closest(".target").remove();
+      syncTargets(form);
+    }
+  });
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const submit = $("button[type=submit]", form);
+    const label = submit.textContent;
+    submit.disabled = true;
+    submit.textContent = "Starting…";
+    try {
+      const body = { kind: form.dataset.kind, targets: targetsOf(form) };
+      if (form.question) body.question = form.question.value;
+      const res = await postJson(`/api/corpora/${corpusEl.dataset.corpus}/compare`, body);
+      location.href = res.comparison_id
+        ? `/corpora/${corpusEl.dataset.corpus}/compare/${res.comparison_id}`
+        : `/runs/${res.run_ids[0]}`;
+    } catch (err) {
+      showError($("#action-error"), err);
+      submit.disabled = false;
+      submit.textContent = label;
+    }
+  });
+}
 
 // --- run page --------------------------------------------------------------------
 function renderRun(run) {
@@ -119,7 +170,7 @@ function renderRun(run) {
     $("#progress-text").textContent = `${run.status}: ${run.progress}/${run.total} questions answered`;
   }
   if (run.error) showError($("#run-error"), new Error(run.error));
-  if (run.kind === "ask") $("#run-title").textContent = run.answers[0]?.question || run.person;
+  if (run.kind === "ask") $("#run-title").textContent = run.question || run.answers[0]?.question || run.person;
 
   if (run.status === "done") {
     $("#story-card").hidden = false;
@@ -164,4 +215,80 @@ if (runEl) {
     }
   };
   poll();
+}
+
+// --- compare page -------------------------------------------------------------------
+const isActive = (r) => r.status === "queued" || r.status === "running";
+
+function elapsed(r) {
+  const end = r.finished_at ? new Date(r.finished_at) : new Date();
+  const s = Math.max(0, Math.round((end - new Date(r.created_at)) / 1000));
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+}
+
+function compareColumn(r) {
+  const v = r.verification;
+  const answered = r.answers.filter((a) => a.answer).length;
+  const stats = [`<span class="stat"><b>${elapsed(r)}</b>${isActive(r) ? " so far" : ""}</span>`];
+  if (r.kind === "story" && r.answers.length) stats.push(`<span class="stat"><b>${answered}</b>/${r.answers.length} answered</span>`);
+  if (v) {
+    stats.push(`<span class="stat"><b>${Math.round(v.traced_ratio * 100)}%</b> traced</span>`);
+    stats.push(`<span class="stat ${v.flagged_count ? "error" : ""}"><b>${v.flagged_count}</b> flagged</span>`);
+  }
+  let body = "";
+  if (isActive(r)) {
+    body = `<p><progress max="${r.total || 1}" value="${r.progress}"></progress>
+      <span class="muted">${r.progress}/${r.total} questions</span></p>`;
+  } else if (r.status === "failed") {
+    body = `<p class="error">${esc(r.error)}</p>`;
+  } else {
+    const story = r.story || "Nothing relevant was found in the sources.";
+    body = `<div class="story">${story.split(/\n\s*\n/).map((p) => `<p>${withCitations(p)}</p>`).join("")}</div>`;
+  }
+  return `<article class="card compare-col">
+    <header><strong>${esc(r.model)}</strong> <span class="badge ${esc(r.status)}">${esc(r.status)}</span>
+      <div class="muted small">${esc(r.provider)}</div></header>
+    <div class="summary">${stats.join("")}</div>
+    ${body}
+    <p class="small"><a href="/runs/${esc(r.run_id)}">full run, audit and log →</a></p>
+  </article>`;
+}
+
+function compareMatrix(runs) {
+  const withAnswers = runs.filter((r) => r.answers.length);
+  if (!withAnswers.length) return "";
+  const questions = withAnswers[0].answers.map((a) => [a.query_id, a.question]);
+  const head = `<thead><tr><th>#</th><th>Question</th>${runs.map((r) => `<th>${esc(r.model)}</th>`).join("")}</tr></thead>`;
+  const rows = questions.map(([id, q]) => `<tr><td>${id}</td><td>${esc(q)}</td>${runs.map((r) => {
+    const a = r.answers.find((x) => x.query_id === id);
+    if (!a) return `<td class="muted">…</td>`;
+    if (!a.answer) return `<td class="muted" title="not in the sources">–</td>`;
+    return `<td title="${esc(a.answer)}">✓ ${a.cited_ids.map((c) => `<button type="button" class="chip quiet" data-chunk="${esc(c)}">${esc(c)}</button>`).join("")}</td>`;
+  }).join("")}</tr>`).join("");
+  return head + `<tbody>${rows}</tbody>`;
+}
+
+function renderCompare(cmp) {
+  $("#cmp-grid").innerHTML = cmp.runs.map(compareColumn).join("");
+  const matrix = $("#cmp-matrix");
+  if (matrix) {
+    const html = compareMatrix(cmp.runs);
+    $("#cmp-matrix-card").hidden = !html;
+    matrix.innerHTML = html;
+  }
+  return cmp.runs.some(isActive);
+}
+
+const cmpEl = $("#compare");
+if (cmpEl) {
+  const url = `/api/corpora/${cmpEl.dataset.corpus}/comparisons/${cmpEl.dataset.comparison}`;
+  const poll = async () => {
+    try {
+      if (renderCompare(await api(url))) setTimeout(poll, 2000);
+    } catch (err) {
+      showError($("#cmp-error"), err);
+      setTimeout(poll, 5000);
+    }
+  };
+  if (renderCompare(JSON.parse($("#cmp-data").textContent))) setTimeout(poll, 2000);
 }
