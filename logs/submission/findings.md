@@ -17,8 +17,9 @@ Run `r198ec82572` on corpus `benjamin-franklin-209336` (6 public-domain Franklin
   NOT_IN_SOURCES because the sufficiency check judged the only quote (a ballad) not an adventure.
   That is a defensible call, and the topic was left out of the story.
 - **18 story sentences, 18 traced to a chunk id (100%), 0 flagged** by the verifier. The verifier
-  runs two checks per sentence: every cited id must be in the run, and an LLM judge confirms the
-  cited chunks support the sentence.
+  runs two checks per sentence. A lexical check confirms the cited ids were retrieved and no
+  number or name is missing from those chunks. An LLM judge then confirms the cited chunks
+  support the sentence.
 - **Canaries 3/3 "Not in the sources."** All three are true facts that postdate every book in the
   corpus:
   - the portrait on the $100 bill;
