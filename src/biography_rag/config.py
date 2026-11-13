@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     top_k: int = 6
     candidate_k: int = 24  # per arm, before fusion
     min_similarity: float = 0.0  # drop vector hits below this cosine (0 = off)
+    max_number_density: float | None = 0.15  # skip back-of-book index chunks (numbers per word)
     query_concurrency: int = 4
     verify_with_llm: bool = True
 

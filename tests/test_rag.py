@@ -116,7 +116,10 @@ class TestRetriever:
     def test_hybrid_returns_relevant_chunk_first(self):
         index = MemoryChunkIndex()
         emb = HashingEmbedder()
-        filler = [Chunk(f"d02-{i:04d}", "d02", i, f"Unrelated filler about printing number {i}.") for i in range(10)]
+        filler = [
+            Chunk(f"d02-{i:04d}", "d02", i, f"Unrelated filler about printing, item number {i} of many.")
+            for i in range(10)
+        ]
         chunks = [C1, C2, *filler]
         index.add("c", chunks, emb.embed_documents([c.text for c in chunks]))
         hits = HybridRetriever(index, emb, RetrievalConfig(top_k=3)).retrieve("c", "When was he born?", "born birth")
@@ -130,6 +133,20 @@ class TestRetriever:
         index.add("c", [C1], emb.embed_documents([C1.text]))
         hits = HybridRetriever(index, emb, RetrievalConfig(min_similarity=0.99)).retrieve("c", "zebra quantum")
         assert hits == []
+
+    def test_skips_back_of_book_index_pages(self):
+        index = MemoryChunkIndex()
+        emb = HashingEmbedder()
+        entry = Chunk(
+            "d09-0900", "d09", 900, "Franklin, Josiah, born in Boston, 2; his family, 2, 3; candle maker, 4, 7."
+        )
+        index.add("c", [C1, entry], emb.embed_documents([C1.text, entry.text]))
+        question = "Where was Josiah born, the candle maker?"
+        assert [h.chunk.chunk_id for h in HybridRetriever(index, emb, RetrievalConfig()).retrieve("c", question)] == [
+            "d01-0000"
+        ]
+        keep_all = RetrievalConfig(max_number_density=None)
+        assert len(HybridRetriever(index, emb, keep_all).retrieve("c", question)) == 2
 
     def test_empty_corpus(self):
         assert HybridRetriever(MemoryChunkIndex(), HashingEmbedder(), RetrievalConfig()).retrieve("x", "q") == []

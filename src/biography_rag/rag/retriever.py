@@ -2,7 +2,11 @@
 
 Dense search finds paraphrases ("his boyhood" for "childhood"); keyword search finds rare
 exact words (names, "kite", "almanac"). Reciprocal rank fusion needs no score calibration
-between the two, which matters because the app must work with any embedder."""
+between the two, which matters because the app must work with any embedder.
+
+Back-of-book index pages are skipped. They match every question (they name every topic) but
+state nothing: in the Franklin run they were the only evidence offered for two questions whose
+answers were in the narrative chapters."""
 
 from __future__ import annotations
 
@@ -11,6 +15,7 @@ from dataclasses import dataclass
 from biography_rag.domain import Chunk, RetrievedChunk
 from biography_rag.embeddings.base import Embedder
 from biography_rag.store.base import ChunkIndex
+from biography_rag.text import number_density
 
 
 @dataclass(frozen=True)
@@ -19,6 +24,7 @@ class RetrievalConfig:
     candidate_k: int = 24
     min_similarity: float = 0.0
     rrf_k: int = 60
+    max_number_density: float | None = 0.15  # skip index-like chunks above this; None = keep all
 
 
 class HybridRetriever:
@@ -32,6 +38,9 @@ class HybridRetriever:
         dense = self._index.vector_search(corpus_id, self._embedder.embed_query(question), cfg.candidate_k)
         dense = [(c, s) for c, s in dense if s >= cfg.min_similarity]
         sparse = self._index.keyword_search(corpus_id, f"{question} {keywords}".strip(), cfg.candidate_k)
+        if cfg.max_number_density is not None:
+            dense = [(c, s) for c, s in dense if number_density(c.text) <= cfg.max_number_density]
+            sparse = [(c, s) for c, s in sparse if number_density(c.text) <= cfg.max_number_density]
 
         fused: dict[str, float] = {}
         chunks: dict[str, Chunk] = {}

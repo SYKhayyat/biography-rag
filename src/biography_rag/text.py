@@ -159,6 +159,16 @@ def words(text: str) -> list[str]:
     return [w.lower().replace("’", "'").removesuffix("'s") for w in _WORD.findall(text)]
 
 
+_NUMBER = re.compile(r"\b\d+\b")
+_LETTERS = re.compile(r"[A-Za-z]+")
+
+
+def number_density(text: str) -> float:
+    """Numbers per word. Back-of-book index pages ("Josiah, emigrates to Boston, 2; his family,
+    2, 3") score 0.15-1.2; narrative biography, dates and all, stays under about 0.1."""
+    return len(_NUMBER.findall(text)) / max(1, len(_LETTERS.findall(text)))
+
+
 def stem(word: str) -> str:
     """Crude suffix stripper: enough to match 'invented'/'invention'/'invents'."""
     for suffix in ("ations", "ation", "ments", "ment", "ings", "ing", "ies", "ied", "ed", "es", "ly", "s"):

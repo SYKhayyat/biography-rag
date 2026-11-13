@@ -249,7 +249,12 @@ class StoryService:
             chunk_count=corpus.chunk_count,
             provider=run.provider,
             model=run.model,
-            retrieval={"top_k": r.top_k, "candidate_k": r.candidate_k, "min_similarity": r.min_similarity},
+            retrieval={
+                "top_k": r.top_k,
+                "candidate_k": r.candidate_k,
+                "min_similarity": r.min_similarity,
+                "max_number_density": r.max_number_density,
+            },
             verify_with_llm=self._config.verify_with_llm,
         )
 

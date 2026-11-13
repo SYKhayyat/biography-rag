@@ -76,7 +76,10 @@ def build_container(
     chats = chats or ChatModelFactory(settings)
     logger = RunLogger([RepositorySink(runs), JsonlFileSink(settings.log_dir)])
     retrieval = RetrievalConfig(
-        top_k=settings.top_k, candidate_k=settings.candidate_k, min_similarity=settings.min_similarity
+        top_k=settings.top_k,
+        candidate_k=settings.candidate_k,
+        min_similarity=settings.min_similarity,
+        max_number_density=settings.max_number_density,
     )
     ingest = IngestService(
         corpora, index, embedders, ParagraphChunker(size=settings.chunk_size, overlap=settings.chunk_overlap)
