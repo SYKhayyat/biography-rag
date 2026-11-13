@@ -1,0 +1,609 @@
+{
+  "run_id": "r198ec82572",
+  "corpus_id": "benjamin-franklin-209336",
+  "person": "Benjamin Franklin",
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "status": "done",
+  "progress": 20,
+  "total": 20,
+  "answers": [
+    {
+      "query_id": 1,
+      "question": "Where and when was Benjamin Franklin born?",
+      "retrieved_ids": [
+        "d04-0010",
+        "d02-0132",
+        "d02-0018",
+        "d04-0729",
+        "d02-0017",
+        "d04-0000"
+      ],
+      "answer": "At the time of his birth, his father lived directly opposite the Old South Church, in Milk Street, Boston [d04-0010, d02-0018, d02-0017].",
+      "cited_ids": [
+        "d04-0010",
+        "d02-0018",
+        "d02-0017"
+      ],
+      "display": "At the time of his birth, his father lived directly opposite the Old South Church, in Milk Street, Boston [d04-0010, d02-0018, d02-0017]."
+    },
+    {
+      "query_id": 2,
+      "question": "Where were Benjamin Franklin's parents from, and what did they do?",
+      "retrieved_ids": [
+        "d01-0023",
+        "d04-0537",
+        "d06-0017",
+        "d02-0016",
+        "d06-0011",
+        "d02-0018"
+      ],
+      "answer": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011].",
+      "cited_ids": [
+        "d02-0016",
+        "d06-0011"
+      ],
+      "display": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011]."
+    },
+    {
+      "query_id": 3,
+      "question": "What was Benjamin Franklin's childhood like?",
+      "retrieved_ids": [
+        "d01-0023",
+        "d02-0021",
+        "d04-0085",
+        "d04-0000",
+        "d04-0729",
+        "d06-0008"
+      ],
+      "answer": "His upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d01-0023, d02-0021, d06-0008].",
+      "cited_ids": [
+        "d01-0023",
+        "d02-0021",
+        "d06-0008"
+      ],
+      "display": "His upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d01-0023, d02-0021, d06-0008]."
+    },
+    {
+      "query_id": 4,
+      "question": "Who were Benjamin Franklin's siblings?",
+      "retrieved_ids": [
+        "d04-0537",
+        "d04-0540",
+        "d01-0025",
+        "d04-0000",
+        "d01-0022",
+        "d02-0017"
+      ],
+      "answer": "James was an older brother who apprenticed Benjamin in printing [d04-0540, d01-0025].",
+      "cited_ids": [
+        "d04-0540",
+        "d01-0025"
+      ],
+      "display": "James was an older brother who apprenticed Benjamin in printing [d04-0540, d01-0025]."
+    },
+    {
+      "query_id": 5,
+      "question": "What schooling or training did Benjamin Franklin have?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d06-0008",
+        "d04-0268",
+        "d06-0086",
+        "d02-0028",
+        "d05-0000"
+      ],
+      "answer": "His formal schooling was limited, and much of his education was self-imparted [d06-0008, d04-0268, d02-0028].",
+      "cited_ids": [
+        "d06-0008",
+        "d04-0268",
+        "d02-0028"
+      ],
+      "display": "His formal schooling was limited, and much of his education was self-imparted [d06-0008, d04-0268, d02-0028]."
+    },
+    {
+      "query_id": 6,
+      "question": "What was Benjamin Franklin's first job?",
+      "retrieved_ids": [
+        "d06-0048",
+        "d02-0028",
+        "d06-0057",
+        "d05-0054",
+        "d02-0132",
+        "d04-0000"
+      ],
+      "answer": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d02-0028, d06-0048].",
+      "cited_ids": [
+        "d02-0028",
+        "d06-0048"
+      ],
+      "display": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d02-0028, d06-0048]."
+    },
+    {
+      "query_id": 7,
+      "question": "An adventurous story from Benjamin Franklin's life.",
+      "retrieved_ids": [
+        "d04-0000",
+        "d06-0003",
+        "d01-0020",
+        "d06-0057",
+        "d01-0025",
+        "d02-0011"
+      ],
+      "answer": null,
+      "cited_ids": [],
+      "display": "Not in the sources."
+    },
+    {
+      "query_id": 8,
+      "question": "A scary or dangerous moment Benjamin Franklin faced.",
+      "retrieved_ids": [
+        "d01-0177",
+        "d04-0000",
+        "d02-0012",
+        "d02-0409",
+        "d03-0471",
+        "d05-0000"
+      ],
+      "answer": "Fortunately, the crisis passed without further incident [d01-0177].",
+      "cited_ids": [
+        "d01-0177"
+      ],
+      "display": "Fortunately, the crisis passed without further incident [d01-0177]."
+    },
+    {
+      "query_id": 9,
+      "question": "A funny anecdote about Benjamin Franklin.",
+      "retrieved_ids": [
+        "d04-0001",
+        "d06-0086",
+        "d02-0371",
+        "d04-0000",
+        "d01-0020",
+        "d02-0011"
+      ],
+      "answer": "This joke showed his characteristic humor and wit in Congress [d02-0371].",
+      "cited_ids": [
+        "d02-0371"
+      ],
+      "display": "This joke showed his characteristic humor and wit in Congress [d02-0371]."
+    },
+    {
+      "query_id": 10,
+      "question": "A time Benjamin Franklin failed or made a serious mistake.",
+      "retrieved_ids": [
+        "d01-0142",
+        "d04-0000",
+        "d01-0324",
+        "d04-0537",
+        "d01-0033",
+        "d05-0000"
+      ],
+      "answer": "This episode represents a serious mistake or failure in his career [d01-0324].",
+      "cited_ids": [
+        "d01-0324"
+      ],
+      "display": "This episode represents a serious mistake or failure in his career [d01-0324]."
+    },
+    {
+      "query_id": 11,
+      "question": "The hardest thing Benjamin Franklin went through.",
+      "retrieved_ids": [
+        "d01-0324",
+        "d04-0000",
+        "d01-0142",
+        "d06-0057",
+        "d04-0001",
+        "d04-0537"
+      ],
+      "answer": "Ultimately, the journey was fruitless, as he found himself on a bootless errand [d01-0324].",
+      "cited_ids": [
+        "d01-0324"
+      ],
+      "display": "Ultimately, the journey was fruitless, as he found himself on a bootless errand [d01-0324]."
+    },
+    {
+      "query_id": 12,
+      "question": "Who did Benjamin Franklin marry, and what was that relationship like?",
+      "retrieved_ids": [
+        "d01-0040",
+        "d01-0041",
+        "d04-0516",
+        "d04-0000",
+        "d01-0129",
+        "d04-0537"
+      ],
+      "answer": "She also accepted and raised Franklin's illegitimate son as her own [d01-0040, d01-0041].",
+      "cited_ids": [
+        "d01-0040",
+        "d01-0041"
+      ],
+      "display": "She also accepted and raised Franklin's illegitimate son as her own [d01-0040, d01-0041]."
+    },
+    {
+      "query_id": 13,
+      "question": "What about Benjamin Franklin's children?",
+      "retrieved_ids": [
+        "d04-0469",
+        "d02-0017",
+        "d02-0267",
+        "d04-0537",
+        "d04-0000",
+        "d02-0188"
+      ],
+      "answer": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0017, d02-0267].",
+      "cited_ids": [
+        "d04-0469",
+        "d02-0017",
+        "d02-0267"
+      ],
+      "display": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0017, d02-0267]."
+    },
+    {
+      "query_id": 14,
+      "question": "Who were Benjamin Franklin's closest friends or mentors?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d04-0633",
+        "d02-0087",
+        "d06-0057",
+        "d04-0671",
+        "d06-0048"
+      ],
+      "answer": "Benjamin Franklin's closest friends or mentors included his early youth friend John Collins, who was from Boston [d04-0633]. He also had three intimate companions who were clerks and shared a common taste for business, among them Joseph Watson, described as a pious and sensible young man of great integrity [d02-0087]. Another close friend was Abel James, a Quaker involved in the Pennsylvania silk manufacturing society [d04-0671]. Additionally, Franklin had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048].",
+      "cited_ids": [
+        "d04-0633",
+        "d02-0087",
+        "d04-0671",
+        "d06-0048"
+      ],
+      "display": "Benjamin Franklin's closest friends or mentors included his early youth friend John Collins, who was from Boston [d04-0633]. He also had three intimate companions who were clerks and shared a common taste for business, among them Joseph Watson, described as a pious and sensible young man of great integrity [d02-0087]. Another close friend was Abel James, a Quaker involved in the Pennsylvania silk manufacturing society [d04-0671]. Additionally, Franklin had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048]."
+    },
+    {
+      "query_id": 15,
+      "question": "Who were Benjamin Franklin's rivals or enemies?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d05-0267",
+        "d04-0666",
+        "d06-0057",
+        "d02-0012",
+        "d05-0273"
+      ],
+      "answer": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0267, d02-0012, d05-0273].",
+      "cited_ids": [
+        "d04-0666",
+        "d05-0267",
+        "d02-0012",
+        "d05-0273"
+      ],
+      "display": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0267, d02-0012, d05-0273]."
+    },
+    {
+      "query_id": 16,
+      "question": "What is Benjamin Franklin best known for?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d04-0003",
+        "d04-0001",
+        "d04-0729",
+        "d05-0054",
+        "d06-0057"
+      ],
+      "answer": "Additionally, he was a printer highly regarded by his peers, considered almost the patron saint of the printing craft [d04-0003, d04-0001, d05-0054].",
+      "cited_ids": [
+        "d04-0003",
+        "d04-0001",
+        "d05-0054"
+      ],
+      "display": "Additionally, he was a printer highly regarded by his peers, considered almost the patron saint of the printing craft [d04-0003, d04-0001, d05-0054]."
+    },
+    {
+      "query_id": 17,
+      "question": "Something Benjamin Franklin made, invented or discovered.",
+      "retrieved_ids": [
+        "d04-0001",
+        "d04-0537",
+        "d04-0729",
+        "d05-0855",
+        "d03-0437",
+        "d04-0000"
+      ],
+      "answer": "Franklin also completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437].",
+      "cited_ids": [
+        "d04-0001",
+        "d05-0855",
+        "d03-0437"
+      ],
+      "display": "Franklin also completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437]."
+    },
+    {
+      "query_id": 18,
+      "question": "Where did Benjamin Franklin travel or live?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d04-0018",
+        "d04-0537",
+        "d06-0171",
+        "d04-0611",
+        "d06-0086"
+      ],
+      "answer": "He was as much at home in London as in Philadelphia [d04-0018, d06-0171, d04-0611].",
+      "cited_ids": [
+        "d04-0018",
+        "d06-0171",
+        "d04-0611"
+      ],
+      "display": "He was as much at home in London as in Philadelphia [d04-0018, d06-0171, d04-0611]."
+    },
+    {
+      "query_id": 19,
+      "question": "A habit, hobby or quirk of Benjamin Franklin.",
+      "retrieved_ids": [
+        "d04-0000",
+        "d04-0001",
+        "d02-0031",
+        "d04-0537",
+        "d01-0020",
+        "d04-0729"
+      ],
+      "answer": "These habits show his practical ingenuity and love of reading [d04-0001, d02-0031].",
+      "cited_ids": [
+        "d04-0001",
+        "d02-0031"
+      ],
+      "display": "These habits show his practical ingenuity and love of reading [d04-0001, d02-0031]."
+    },
+    {
+      "query_id": 20,
+      "question": "How did Benjamin Franklin die, and how is Benjamin Franklin remembered?",
+      "retrieved_ids": [
+        "d04-0000",
+        "d06-0175",
+        "d05-0000",
+        "d06-0174",
+        "d04-0729",
+        "d06-0176"
+      ],
+      "answer": "Benjamin Franklin died quietly at about eleven o'clock at night on the 17th of April, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+      "cited_ids": [
+        "d06-0174",
+        "d06-0175",
+        "d04-0729"
+      ],
+      "display": "Benjamin Franklin died quietly at about eleven o'clock at night on the 17th of April, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729]."
+    }
+  ],
+  "story": "Benjamin Franklin was born on January 6, 1706, in Boston, Massachusetts, where his father lived directly opposite the Old South Church in Milk Street [d02-0018, d04-0010]. His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011]. Benjamin was the youngest son in a large family of seventeen children, and his upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d06-0008, d01-0023]. His formal schooling was limited; he attended Boston Grammar School for less than a year, becoming head of his class, but much of his education was self-imparted [d04-0268, d06-0008]. \n\nAt about the age of twelve, Benjamin was apprenticed to his older brother James, who was a printer, and this apprenticeship lasted nine years [d01-0025, d02-0028]. Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d06-0048, d02-0028]. Franklin was highly regarded as a printer by his peers and considered almost the patron saint of the printing craft [d05-0054, d04-0003]. He was also known for his practical ingenuity and love of reading [d02-0031, d04-0001]. \n\nFranklin married Deborah Read on September 1, 1730; she accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040, d01-0041]. Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0267]. \n\nFranklin had several close friends and companions, including his early youth friend John Collins from Boston, clerks Joseph Watson and Charles Osborne, and Abel James, a Quaker involved in Pennsylvania's silk manufacturing society [d04-0633, d02-0087, d04-0671]. He also had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048]. Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0273, d02-0012]. \n\nHe was as much at home in London as in Philadelphia, spending about twenty-six years of his life abroad and crossing the Atlantic no less than eight times [d04-0018, d06-0171]. Franklin completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437]. \n\nFranklin died quietly at about eleven o'clock at night on April 17, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+  "verification": {
+    "checks": [
+      {
+        "sentence": "Benjamin Franklin was born on January 6, 1706, in Boston, Massachusetts, where his father lived directly opposite the Old South Church in Milk Street [d02-0018, d04-0010].",
+        "cited_ids": [
+          "d02-0018",
+          "d04-0010"
+        ],
+        "verdict": "supported",
+        "support": 1.0,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011].",
+        "cited_ids": [
+          "d02-0016",
+          "d06-0011"
+        ],
+        "verdict": "supported",
+        "support": 0.875,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Benjamin was the youngest son in a large family of seventeen children, and his upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d06-0008, d01-0023].",
+        "cited_ids": [
+          "d06-0008",
+          "d01-0023"
+        ],
+        "verdict": "supported",
+        "support": 0.556,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "His formal schooling was limited; he attended Boston Grammar School for less than a year, becoming head of his class, but much of his education was self-imparted [d04-0268, d06-0008].",
+        "cited_ids": [
+          "d04-0268",
+          "d06-0008"
+        ],
+        "verdict": "supported",
+        "support": 0.667,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "At about the age of twelve, Benjamin was apprenticed to his older brother James, who was a printer, and this apprenticeship lasted nine years [d01-0025, d02-0028].",
+        "cited_ids": [
+          "d01-0025",
+          "d02-0028"
+        ],
+        "verdict": "supported",
+        "support": 1.0,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d06-0048, d02-0028].",
+        "cited_ids": [
+          "d06-0048",
+          "d02-0028"
+        ],
+        "verdict": "supported",
+        "support": 0.9,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin was highly regarded as a printer by his peers and considered almost the patron saint of the printing craft [d05-0054, d04-0003].",
+        "cited_ids": [
+          "d05-0054",
+          "d04-0003"
+        ],
+        "verdict": "supported",
+        "support": 0.545,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He was also known for his practical ingenuity and love of reading [d02-0031, d04-0001].",
+        "cited_ids": [
+          "d02-0031",
+          "d04-0001"
+        ],
+        "verdict": "supported",
+        "support": 0.6,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin married Deborah Read on September 1, 1730; she accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040, d01-0041].",
+        "cited_ids": [
+          "d01-0040",
+          "d01-0041"
+        ],
+        "verdict": "supported",
+        "support": 0.667,
+        "missing_terms": [
+          "Deborah",
+          "Temple"
+        ],
+        "note": "judge: supported (lexical: 67% of content words found in cited chunks; not in cited chunks: Deborah, Temple)",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0267].",
+        "cited_ids": [
+          "d04-0469",
+          "d02-0267"
+        ],
+        "verdict": "supported",
+        "support": 0.714,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin had several close friends and companions, including his early youth friend John Collins from Boston, clerks Joseph Watson and Charles Osborne, and Abel James, a Quaker involved in Pennsylvania's silk manufacturing society [d04-0633, d02-0087, d04-0671].",
+        "cited_ids": [
+          "d04-0633",
+          "d02-0087",
+          "d04-0671"
+        ],
+        "verdict": "supported",
+        "support": 0.84,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He also had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048].",
+        "cited_ids": [
+          "d06-0048"
+        ],
+        "verdict": "supported",
+        "support": 0.625,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0273, d02-0012].",
+        "cited_ids": [
+          "d04-0666",
+          "d05-0273",
+          "d02-0012"
+        ],
+        "verdict": "supported",
+        "support": 0.5,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He was as much at home in London as in Philadelphia, spending about twenty-six years of his life abroad and crossing the Atlantic no less than eight times [d04-0018, d06-0171].",
+        "cited_ids": [
+          "d04-0018",
+          "d06-0171"
+        ],
+        "verdict": "supported",
+        "support": 0.929,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437].",
+        "cited_ids": [
+          "d04-0001",
+          "d05-0855",
+          "d03-0437"
+        ],
+        "verdict": "supported",
+        "support": 0.556,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin died quietly at about eleven o'clock at night on April 17, 1790, having reached an honored and happy old age [d06-0174].",
+        "cited_ids": [
+          "d06-0174"
+        ],
+        "verdict": "supported",
+        "support": 0.929,
+        "missing_terms": [
+          "17"
+        ],
+        "note": "judge: supported (lexical: 93% of content words found in cited chunks; not in cited chunks: 17)",
+        "flagged": false
+      },
+      {
+        "sentence": "He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175].",
+        "cited_ids": [
+          "d06-0175"
+        ],
+        "verdict": "supported",
+        "support": 0.824,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+        "cited_ids": [
+          "d04-0729"
+        ],
+        "verdict": "supported",
+        "support": 0.5,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      }
+    ],
+    "traced_ratio": 1.0,
+    "flagged_count": 0,
+    "sentence_count": 18
+  },
+  "error": null,
+  "kind": "story",
+  "created_at": "2026-11-13T15:40:46.370867+00:00",
+  "finished_at": "2026-11-13T15:41:38.259774+00:00"
+}

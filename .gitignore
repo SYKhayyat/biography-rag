@@ -9,3 +9,4 @@ __pycache__/
 corpus/raw/
 logs/*.jsonl
 !logs/submission/
+supabase/
