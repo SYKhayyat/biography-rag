@@ -98,7 +98,7 @@ def provider_specs(settings: Settings) -> dict[str, ProviderSpec]:
                 ModelOption("openai/gpt-oss-20b"),
                 ModelOption("google/gemma-4-31b-it"),
                 ModelOption("meta/muse-glimmer-30b", extra_body=NO_THINKING),
-                ModelOption("mistralai/mistral-large-4-1t-a52b"),
+                ModelOption("mistralai/mistral-large-4-1t-a52b", extra_body={"reasoning_effort": "low"}),
                 ModelOption("deepseek-ai/deepseek-v4.1-flash", slow=True),
                 ModelOption("z-ai/glm-5.3-flash", slow=True, extra_body=NO_THINKING),
             ),

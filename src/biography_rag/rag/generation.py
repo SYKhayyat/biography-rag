@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 
@@ -22,6 +23,19 @@ class LlmExchange:
     gate_note: str | None = None  # why the evidence gate rejected or trimmed the reply
     check_messages: list[Message] = field(default_factory=list)  # the evidence-sufficiency prompt, if sent
     check_response: str | None = None
+
+
+# Room for a reasoning model's hidden thinking before the one-word verdict: those tokens
+# count against max_tokens, and with a tiny budget the visible reply comes back empty.
+CHECK_MAX_TOKENS = 400
+_FIRST_WORD = re.compile(r"[A-Za-z]+")
+
+
+def says_yes(verdict: str) -> bool:
+    """The check passes only on an explicit YES as the first word; anything else (NO, empty,
+    rambling) fails closed."""
+    word = _FIRST_WORD.search(verdict)
+    return word is not None and word.group().upper() == "YES"
 
 
 def _is_not_in_sources(response: str) -> bool:
@@ -61,9 +75,9 @@ class QueryAnswerer:
 
         quotes = list(dict.fromkeys(e["quote"] for e in result.evidence if e["found"]))
         check = evidence_check_messages(person, question, quotes)
-        verdict = self._chat.complete(check, max_tokens=5)
+        verdict = self._chat.complete(check, max_tokens=CHECK_MAX_TOKENS)
         exchange = replace(exchange, check_messages=check, check_response=verdict)
-        if not verdict.strip().upper().startswith("YES"):
+        if not says_yes(verdict):
             note = "; ".join(filter(None, ["the quoted evidence does not answer the question", result.reason]))
             return QueryAnswer(query_id, question, ids, None, []), replace(exchange, gate_note=note)
         return QueryAnswer(query_id, question, ids, result.answer, result.cited_ids), exchange

@@ -6,7 +6,7 @@ import pytest
 
 from biography_rag.domain import Chunk, RunStatus, Verdict
 from biography_rag.rag.citations import cited_ids, split_sentences, strip_citations
-from biography_rag.rag.generation import QueryAnswerer, StoryWeaver
+from biography_rag.rag.generation import QueryAnswerer, StoryWeaver, says_yes
 from biography_rag.rag.prompts import answer_messages
 from biography_rag.rag.queries import QUERIES
 from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig
@@ -159,7 +159,37 @@ def answer_then(verdict: str):
     )
 
 
+@pytest.mark.parametrize(
+    ("verdict", "ok"),
+    [
+        ("YES", True),
+        ("Yes.", True),
+        ("**YES**", True),
+        ("yes, the quote names it", True),
+        ("NO", False),
+        ("", False),
+        ("YESTERDAY", False),
+        ("Not sure. YES", False),
+    ],
+)
+def test_says_yes(verdict, ok):
+    assert says_yes(verdict) is ok
+
+
 class TestGeneration:
+    def test_evidence_check_leaves_room_for_reasoning_tokens(self):
+        budgets = []
+
+        class Recording(ScriptedChat):
+            def complete(self, messages, *, max_tokens=1200):
+                budgets.append(max_tokens)
+                return super().complete(messages, max_tokens=max_tokens)
+
+        reply = 'EVIDENCE: "was born in Boston in 1706" [d01-0000]\nANSWER: Born in Boston [d01-0000].'
+        chat = Recording(lambda m: "YES" if m[0]["content"].startswith("You check") else reply)
+        answer, _ = QueryAnswerer(chat).answer(1, "X", "Where was he born?", [C1])
+        assert answer.found and budgets[1] >= 200
+
     def test_nothing_retrieved_never_calls_llm(self):
         chat = ScriptedChat(lambda m: pytest.fail("LLM must not be called"))
         answer, exchange = QueryAnswerer(chat).answer(1, "X", "Q?", [])
