@@ -90,6 +90,11 @@ def extractive_responder(messages: list[Message]) -> str:
     if system.startswith("You audit"):
         n = len(re.findall(r"^\d+\. ", user, re.M))
         return "[" + ",".join(f'{{"i": {i}, "supported": true}}' for i in range(1, n + 1)) + "]"
+    if system.startswith("You check whether quoted evidence"):
+        question = user.split("\n", 1)[0].removeprefix("Question: ")
+        quotes = user.split("Quotes:", 1)[1]
+        terms = set(content_terms(question)) - {"person", "franklin", "benjamin"}
+        return "YES" if terms & set(content_terms(quotes)) else "NO"
     if system.startswith("You write a short life story"):
         findings = user.split("The snippets cited above")[0]
         lines = [ln for ln in findings.splitlines() if "[d" in ln]

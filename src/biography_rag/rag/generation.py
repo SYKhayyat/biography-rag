@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 from biography_rag.domain import Chunk, QueryAnswer
 from biography_rag.llm.base import ChatModel, Message
 from biography_rag.rag.citations import cited_ids
 from biography_rag.rag.grounding import gate
-from biography_rag.rag.prompts import NOT_IN_SOURCES_TOKEN, answer_messages, weave_messages
+from biography_rag.rag.prompts import NOT_IN_SOURCES_TOKEN, answer_messages, evidence_check_messages, weave_messages
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,8 @@ class LlmExchange:
     response: str | None
     evidence: tuple[dict, ...] = ()  # the quotes the model gave and whether each was found
     gate_note: str | None = None  # why the evidence gate rejected or trimmed the reply
+    check_messages: list[Message] = field(default_factory=list)  # the evidence-sufficiency prompt, if sent
+    check_response: str | None = None
 
 
 def _is_not_in_sources(response: str) -> bool:
@@ -29,8 +31,18 @@ def _is_not_in_sources(response: str) -> bool:
 
 
 class QueryAnswerer:
-    def __init__(self, chat: ChatModel) -> None:
+    """Answers one question, then gates the reply in two steps:
+
+    1. ``grounding.gate``: each EVIDENCE quote must occur verbatim in the snippet it cites;
+    2. the sufficiency check: the model is shown only the question and the verified quotes, and
+       must agree they state the answer. A real quote from a loosely related snippet (the
+       "his portrait hangs in Boston" quote offered for "whose face is on the $100 bill?")
+       passes step 1 but fails step 2.
+    """
+
+    def __init__(self, chat: ChatModel, *, check_evidence: bool = True) -> None:
         self._chat = chat
+        self._check_evidence = check_evidence
 
     def answer(
         self, query_id: int, person: str, question: str, chunks: Sequence[Chunk]
@@ -44,6 +56,16 @@ class QueryAnswerer:
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange(messages, response)
         result = gate(response, {c.chunk_id: c for c in chunks})
         exchange = LlmExchange(messages, response, tuple(result.evidence), result.reason)
+        if result.answer is None or not self._check_evidence:
+            return QueryAnswer(query_id, question, ids, result.answer, result.cited_ids), exchange
+
+        quotes = list(dict.fromkeys(e["quote"] for e in result.evidence if e["found"]))
+        check = evidence_check_messages(person, question, quotes)
+        verdict = self._chat.complete(check, max_tokens=5)
+        exchange = replace(exchange, check_messages=check, check_response=verdict)
+        if not verdict.strip().upper().startswith("YES"):
+            note = "; ".join(filter(None, ["the quoted evidence does not answer the question", result.reason]))
+            return QueryAnswer(query_id, question, ids, None, []), replace(exchange, gate_note=note)
         return QueryAnswer(query_id, question, ids, result.answer, result.cited_ids), exchange
 
 

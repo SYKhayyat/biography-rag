@@ -135,6 +135,13 @@ class TestRetriever:
         assert HybridRetriever(MemoryChunkIndex(), HashingEmbedder(), RetrievalConfig()).retrieve("x", "q") == []
 
 
+def answer_then(verdict: str):
+    """A model that gives ``reply`` to the answer prompt and ``verdict`` to the evidence check."""
+    return lambda reply: ScriptedChat(
+        lambda m: verdict if m[0]["content"].startswith("You check whether quoted evidence") else reply
+    )
+
+
 class TestGeneration:
     def test_nothing_retrieved_never_calls_llm(self):
         chat = ScriptedChat(lambda m: pytest.fail("LLM must not be called"))
@@ -151,8 +158,9 @@ class TestGeneration:
 
     def test_answer_records_citations(self):
         reply = 'EVIDENCE: "was born in Boston in 1706" [d01-0000]\nANSWER: Born in Boston [d01-0000].'
-        answer, ex = QueryAnswerer(ScriptedChat(lambda m: reply)).answer(1, "X", "Q?", [C1, C2])
+        answer, ex = QueryAnswerer(answer_then("YES")(reply)).answer(1, "X", "Where was he born?", [C1, C2])
         assert answer.answer == "Born in Boston [d01-0000]."
+        assert ex.check_messages[1]["content"].endswith('- "was born in Boston in 1706"') and ex.check_response == "YES"
         assert answer.cited_ids == ["d01-0000"]
         assert ex.evidence[0]["found"] and ex.gate_note is None
         assert answer.retrieved_ids == ["d01-0000", "d01-0001"]
@@ -167,6 +175,28 @@ class TestGeneration:
         answer, ex = QueryAnswerer(ScriptedChat(lambda m: reply)).answer(1, "X", "Q?", [C1])
         assert answer.display() == "Not in the sources."
         assert ex.response == reply and "occurs" in ex.gate_note  # the raw reply is still logged
+
+    def test_real_but_irrelevant_quote_is_not_in_sources(self):
+        # The canary reply from the first real run, after the quote gate was added: the quote is
+        # genuine, it just says nothing about the bill.
+        chunk = Chunk("d01-0018", "d01", 18, "BENJAMIN FRANKLIN From the original by Jean Baptiste Greuze.")
+        reply = (
+            'EVIDENCE: "BENJAMIN FRANKLIN From the original by Jean Baptiste Greuze." [d01-0018]\n'
+            "ANSWER: The portrait on the hundred-dollar bill is of Benjamin Franklin. "
+            "This is supported by the mention of his portrait [d01-0018]."
+        )
+        answer, ex = QueryAnswerer(answer_then("NO")(reply)).answer(
+            1, "BF", "Whose portrait is on the $100 bill?", [chunk]
+        )
+        assert answer.display() == "Not in the sources." and answer.cited_ids == []
+        assert ex.evidence[0]["found"] and ex.gate_note.startswith("the quoted evidence does not answer")
+        assert "Greuze" in ex.check_messages[1]["content"] and "Snippets" not in ex.check_messages[1]["content"]
+
+    def test_evidence_check_can_be_disabled(self):
+        reply = 'EVIDENCE: "was born in Boston in 1706" [d01-0000]\nANSWER: Born in Boston [d01-0000].'
+        chat = ScriptedChat(lambda m: reply)
+        answer, ex = QueryAnswerer(chat, check_evidence=False).answer(1, "X", "Q?", [C1])
+        assert answer.found and ex.check_messages == []
 
     def test_prompt_forbids_outside_knowledge_and_names_person(self):
         system = answer_messages("Ada Lovelace", "Q?", [C1])[0]["content"]
@@ -220,6 +250,8 @@ class TestStoryService:
         chat.responder = lambda m: (
             '[{"i": 1, "supported": false, "reason": "date not in snippet"}]'
             if m[0]["content"].startswith("You audit")
+            else "YES"
+            if m[0]["content"].startswith("You check whether quoted evidence")
             else 'EVIDENCE: "was born in Boston on Milk Street" [d01-0000]\n'
             "ANSWER: He was born on January 17, 1706 in Boston [d01-0000]. He signed the Constitution."
         )
@@ -229,6 +261,7 @@ class TestStoryService:
         assert [c.verdict for c in run.verification.checks] == [Verdict.JUDGE_FLAGGED]
         query = next(e for e in app_parts["runs"].events(run.run_id) if e["type"] == "query")
         assert "dropped 1 uncited" in query["gate"] and "Constitution" in query["response"]
+        assert query["evidence_check"]["response"] == "YES" and query["evidence_check"]["prompt"]
 
     def test_run_failure_is_recorded(self, app_parts, bio_file, chat):
         corpus = self.ready(app_parts, bio_file)

@@ -26,11 +26,21 @@ snippet, the answer is {NOT_IN_SOURCES_TOKEN}.
 
 Reply in exactly this format:
 EVIDENCE: "<exact words copied from a snippet>" [<snippet id>]
-(one EVIDENCE line per snippet you rely on, at most 4)
+(one EVIDENCE line per passage you rely on, at most 4; each quote one continuous passage, \
+never shortened with "...")
 ANSWER: <2 to 6 plain sentences, each ending with the bracketed id(s) supporting it, \
 for example [d01-0042] or [d01-0042, d03-0007]>
 
 Do not mention "snippets", "sources" or "the text" in the answer."""
+
+EVIDENCE_CHECK_SYSTEM = """You check whether quoted evidence answers a question about {person}. \
+You see only the quotes, not where they came from.
+
+Reply YES only if the quotes themselves state the answer (a paraphrase of what they say is fine). \
+Reply NO if they merely mention the same person, object or topic, or if answering would need any fact \
+that is not in the quotes, however well known.
+
+Reply with one word: YES or NO."""
 
 WEAVE_SYSTEM = """You write a short life story of {person} by weaving together research findings.
 
@@ -61,6 +71,14 @@ def answer_messages(person: str, question: str, chunks: Sequence[Chunk]) -> list
     return [
         {"role": "system", "content": ANSWER_SYSTEM.format(person=person)},
         {"role": "user", "content": f"Question: {question}\n\nSnippets:\n\n{_snippets(chunks)}"},
+    ]
+
+
+def evidence_check_messages(person: str, question: str, quotes: Sequence[str]) -> list[Message]:
+    listed = "\n".join(f'- "{q}"' for q in quotes)
+    return [
+        {"role": "system", "content": EVIDENCE_CHECK_SYSTEM.format(person=person)},
+        {"role": "user", "content": f"Question: {question}\n\nQuotes:\n{listed}"},
     ]
 
 

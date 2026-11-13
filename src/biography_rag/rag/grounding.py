@@ -24,6 +24,7 @@ from biography_rag.text import words
 
 _EVIDENCE = re.compile(r"^\s*EVIDENCE:\s*[\"“](.+?)[\"”]\s*\[([^\]]+)\]", re.M | re.I)
 _ANSWER = re.compile(r"^\s*ANSWER:\s*", re.M | re.I)
+_ELLIPSIS = re.compile(r"\.\s*\.\s*\.|…|\[\s*\.\.\.\s*\]")
 MIN_QUOTE_WORDS = 3
 
 
@@ -40,8 +41,20 @@ def _normal(text: str) -> str:
 
 
 def check_quote(quote: str, chunk: Chunk) -> bool:
-    q = _normal(quote)
-    return len(q.split()) >= MIN_QUOTE_WORDS and q in _normal(chunk.text)
+    """True if the quote occurs word for word in the chunk (case, spacing and punctuation aside).
+
+    Models like to shorten long quotes with "...": each piece must then occur, in order, and
+    pieces under MIN_QUOTE_WORDS are ignored, but at least one piece must be long enough."""
+    text = _normal(chunk.text)
+    pieces = [_normal(p) for p in _ELLIPSIS.split(quote)]
+    pieces = [p for p in pieces if len(p.split()) >= MIN_QUOTE_WORDS]
+    pos = 0
+    for piece in pieces:
+        pos = text.find(piece, pos)
+        if pos < 0:
+            return False
+        pos += len(piece) - 1  # the pieces share no words; keep the boundary space
+    return bool(pieces)
 
 
 def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:

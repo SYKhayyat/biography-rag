@@ -27,6 +27,20 @@ class TestCheckQuote:
     def test_rejects_paraphrase_altered_and_too_short_quotes(self, quote):
         assert not check_quote(quote, C1)
 
+    @pytest.mark.parametrize(
+        ("quote", "ok"),
+        [
+            ("was born in Boston ... son of Josiah", True),
+            ("was born in Boston … a candle-maker", True),
+            ("Benjamin Franklin was ... in Boston in 1706", True),  # short piece ignored
+            ("son of Josiah ... was born in Boston", False),  # out of order
+            ("was born in Boston ... son of a printer", False),
+            ("born ... Boston", False),  # nothing long enough to check
+        ],
+    )
+    def test_ellipsis_pieces_must_each_occur_in_order(self, quote, ok):
+        assert check_quote(quote, C1) is ok
+
     def test_word_boundaries(self):
         assert not check_quote("orn in Bosto", C1)
 

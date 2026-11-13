@@ -24,7 +24,13 @@ from biography_rag.web.container import build_container
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "logs" / "submission"
-CANARY = "Whose portrait is on the United States hundred-dollar bill?"
+# True facts about Franklin that no corpus book can contain (all postdate the newest one, 1906 era),
+# each answer must be "Not in the sources." The first is the one the assignment's example uses.
+CANARIES = [
+    "Whose portrait is on the United States hundred-dollar bill?",
+    "In what year did his portrait first appear on the hundred-dollar bill?",
+    "What is shown on the back of the Franklin half dollar first minted in 1948?",
+]
 
 
 def ingest(container, person: str) -> str:
@@ -78,9 +84,13 @@ def main() -> None:
             f"{report.traced_ratio:.0%} traced, {len(report.flagged)} flagged"
         )
 
-        canary = container.story.ask(corpus_id, CANARY, args.provider)
-        export(container, canary, "canary-run")
-        print(f"  canary: {canary.story!r}")
+        canaries = []
+        for n, question in enumerate(CANARIES, 1):
+            canary = container.story.ask(corpus_id, question, args.provider)
+            export(container, canary, f"canary-{n}-run")
+            canaries.append((question, canary))
+            print(f"  canary {n}: {canary.story!r}")
+        passed = sum(c.story == "Not in the sources." for _, c in canaries)
 
         (OUT / "story.md").write_text(
             f"# The story of {run.person}\n\n_Run `{run.run_id}` on corpus `{corpus_id}`, "
@@ -88,7 +98,9 @@ def main() -> None:
         )
         (OUT / "audit.md").write_text(
             f"# Sentence audit: run `{run.run_id}`\n\n{audit_table(run)}\n\n"
-            f"## Canary\n\nQ: {CANARY}\n\nA: {canary.story}\n"
+            f"## Canaries: {passed}/{len(canaries)} passed\n\n"
+            + "\n".join(f"- Q: {q}  \n  A: {c.story} (run `{c.run_id}`)" for q, c in canaries)
+            + "\n"
         )
         print(f"wrote {OUT.relative_to(ROOT)}/")
     finally:

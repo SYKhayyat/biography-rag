@@ -224,6 +224,9 @@ class StoryService:
             response=exchange.response,
             evidence=list(exchange.evidence),
             gate=exchange.gate_note,
+            evidence_check={"prompt": exchange.check_messages, "response": exchange.check_response}
+            if exchange.check_messages
+            else None,
             answer=answer_to_dict(answer),
             answer_check=report_to_dict(lexical.report),
         )
