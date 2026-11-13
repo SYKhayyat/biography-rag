@@ -83,6 +83,9 @@ def test_chunk_index_search(stores):
     index.delete_corpus(corpus.corpus_id)
     assert index.vector_search(corpus.corpus_id, emb.embed_query("kite"), 5) == []
     assert len(index.vector_search(other.corpus_id, emb.embed_query("kite"), 5)) == 1  # scoped by corpus
+    for c in (corpus, other):
+        index.delete_corpus(c.corpus_id)
+        corpora.delete(c.corpus_id)
 
 
 def test_runs_and_events(stores):
