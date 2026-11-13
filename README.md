@@ -2,7 +2,7 @@
 
 You upload pages about one person. The app asks 20 fixed questions about them and writes a short life story **only from what the pages say**. Every sentence cites the chunk it came from. When the pages don't answer a question, the answer is "not in the sources" and that topic is left out.
 
-- **Live site:** _(Render URL, added after deploy)_
+- **Live site:** https://biography-rag.onrender.com (free plan: the first request after idle takes ~1 min to wake)
 - **Generated story:** [`logs/submission/story.md`](logs/submission/story.md)
 - **Logs and review:**
   - [`logs/submission/`](logs/submission/): the full run log, every query, the retrieved chunk ids and the prompt sent.
