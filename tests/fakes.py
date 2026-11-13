@@ -57,27 +57,47 @@ class ScriptedChat:
 
 
 @dataclass(frozen=True)
+class _Model:
+    id: str
+    slow: bool = False
+
+    @property
+    def label(self) -> str:
+        return self.id
+
+
+@dataclass(frozen=True)
 class _Info:
     name: str
     label: str
-    model: str
+    models: tuple[_Model, ...]
+
+    @property
+    def model(self) -> str:
+        return self.models[0].id
 
 
 class FakeChatSource:
-    def __init__(self, chat: ScriptedChat) -> None:
+    """Serves one scripted chat per provider; each chat offers exactly its own model."""
+
+    def __init__(self, chat: ScriptedChat, *more: ScriptedChat) -> None:
         self.chat = chat
+        self.chats = {c.provider: c for c in (chat, *more)}
 
     def available(self) -> list[_Info]:
-        return [_Info(self.chat.provider, "Fake", self.chat.model)]
+        return [_Info(c.provider, c.provider.title(), (_Model(c.model),)) for c in self.chats.values()]
 
     @property
     def default_provider(self) -> str:
         return self.chat.provider
 
     def create(self, provider: str | None = None, model: str | None = None) -> ChatModel:
-        if provider not in (None, self.chat.provider):
+        chat = self.chats.get(provider or self.chat.provider)
+        if chat is None:
             raise ValueError(f"unknown provider {provider!r}")
-        return self.chat
+        if model not in (None, chat.model):
+            raise ValueError(f"model {model!r} is not offered for {chat.provider}")
+        return chat
 
 
 _SNIPPET = re.compile(r"\[(d\d{2}-\d{4})\]\n(.+?)(?=\n\n\[d\d{2}-\d{4}\]\n|\Z)", re.S)

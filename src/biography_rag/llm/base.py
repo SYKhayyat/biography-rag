@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Protocol, TypedDict
 
 
@@ -18,6 +19,17 @@ class ChatModel(Protocol):
     def complete(self, messages: list[Message], *, max_tokens: int = 1200) -> str: ...
 
 
+class ModelInfo(Protocol):
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def label(self) -> str: ...
+
+    @property
+    def slow(self) -> bool: ...
+
+
 class ProviderInfo(Protocol):
     @property
     def name(self) -> str: ...
@@ -26,7 +38,10 @@ class ProviderInfo(Protocol):
     def label(self) -> str: ...
 
     @property
-    def model(self) -> str: ...
+    def model(self) -> str: ...  # the default model
+
+    @property
+    def models(self) -> Sequence[ModelInfo]: ...  # every model users may pick, default first
 
 
 class ChatModelSource(Protocol):

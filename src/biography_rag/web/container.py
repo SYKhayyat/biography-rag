@@ -93,4 +93,15 @@ def build_container(
         logger,
         StoryConfig(retrieval, concurrency=settings.query_concurrency, verify_with_llm=settings.verify_with_llm),
     )
-    return Container(settings, corpora, index, runs, embedders, chats, ingest, story, jobs or ThreadJobRunner(), closer)
+    return Container(
+        settings,
+        corpora,
+        index,
+        runs,
+        embedders,
+        chats,
+        ingest,
+        story,
+        jobs or ThreadJobRunner(settings.job_workers),
+        closer,
+    )

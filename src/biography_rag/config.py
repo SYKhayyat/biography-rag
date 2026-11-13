@@ -21,8 +21,12 @@ class Settings(BaseSettings):
     local_embedding_model: str = "BAAI/bge-small-en-v1.5"
 
     # --- chat models -------------------------------------------------------
-    llm_provider: str = "openai"  # "openai" | "qwen" | "deepseek"
+    llm_provider: str = "openai"  # see llm/providers.py for every provider name
     openai_api_key: str = ""
+    groq_api_key: str = ""
+    gemini_api_key: str = ""
+    nvidia_api_key: str = ""
+    cheapllm_api_key: str = ""
     openai_model: str = "gpt-4.1-mini"
     qwen_api_key: str = ""
     qwen_model: str = "qwen-plus"
@@ -48,6 +52,9 @@ class Settings(BaseSettings):
     max_files: int = 300
     runs_per_hour_per_client: int = 20
     admin_token: str = ""  # required for destructive endpoints; empty disables them
+    site_password: str = ""  # HTTP Basic password for the whole site; empty = open
+    job_workers: int = 6  # concurrent background runs (a comparison starts one per model)
+    max_compare_targets: int = 6
 
 
 @lru_cache
