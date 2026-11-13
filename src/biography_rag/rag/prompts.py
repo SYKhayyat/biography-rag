@@ -26,8 +26,8 @@ snippet, the answer is {NOT_IN_SOURCES_TOKEN}.
 
 Reply in exactly this format:
 EVIDENCE: "<exact words copied from a snippet>" [<snippet id>]
-(one EVIDENCE line per passage you rely on, at most 4; each quote one continuous passage, \
-never shortened with "...", copied exactly)
+(one EVIDENCE line per passage you rely on, at most 4; each quote one continuous passage of \
+at most 40 words, copied exactly, never shortened with "...")
 ANSWER: <2 to 6 plain sentences, each ending with the bracketed id(s) supporting it, \
 for example [d01-0042] or [d01-0042, d03-0007]>
 

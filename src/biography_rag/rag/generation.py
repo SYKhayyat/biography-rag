@@ -51,7 +51,7 @@ class QueryAnswerer:
         if not chunks:  # nothing retrieved: never ask the model, it could only guess
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange([], None)
         messages = answer_messages(person, question, chunks)
-        response = self._chat.complete(messages, max_tokens=700)
+        response = self._chat.complete(messages, max_tokens=1200)
         if _is_not_in_sources(response):
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange(messages, response)
         result = gate(response, {c.chunk_id: c for c in chunks})
