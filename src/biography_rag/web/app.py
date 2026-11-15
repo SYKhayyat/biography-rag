@@ -10,14 +10,14 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from biography_rag.rag.queries import QUERIES
 from biography_rag.serialization import corpus_to_dict, run_to_dict
-from biography_rag.services import NotFound, Target, UploadedFile, ValidationError
+from biography_rag.services import NotFound, Target, UploadedFile, ValidationError, result_key
 from biography_rag.web.auth import SitePasswordMiddleware
 from biography_rag.web.container import Container
 from biography_rag.web.ratelimit import SlidingWindowLimiter
@@ -125,28 +125,74 @@ def create_app(container: Container) -> FastAPI:
             "max_compare_targets": settings.max_compare_targets,
         }
 
+    def nav(corpus_id: str | None = None, step: str = "sources", result_id: str | None = None) -> dict[str, Any]:
+        """Everything the sidebar shows: the steps for the current person, their results, other people."""
+        people = [{"corpus_id": c.corpus_id, "person": c.person, "status": c.status} for c in container.corpora.list()]
+        corpus = get_corpus(corpus_id) if corpus_id else None
+        groups: dict[str, list[Any]] = {}
+        if corpus:
+            for r in container.runs.list_for_corpus(corpus.corpus_id):  # newest first
+                groups.setdefault(result_key(r), []).append(r)
+        results = []
+        for key, runs in groups.items():
+            first = min(runs, key=lambda r: r.created_at)
+            statuses = {r.status for r in runs}
+            status = "running" if statuses & {"queued", "running"} else "failed" if statuses == {"failed"} else "done"
+            results.append(
+                {
+                    "key": key,
+                    "kind": first.kind,
+                    "title": "The story" if first.kind == "story" else (first.question or "Question"),
+                    "models": [r.model for r in sorted(runs, key=lambda r: r.created_at)],
+                    "status": status,
+                }
+            )
+        return {
+            "people": people,
+            "corpus": corpus_to_dict(corpus) if corpus else None,
+            "results": results,
+            "step": step,
+            "result_id": result_id,
+        }
+
+    def page(request: Request, name: str, ctx: dict[str, Any], **nav_args: Any) -> HTMLResponse:
+        return templates.TemplateResponse(request, name, {**ctx, "nav": nav(**nav_args), "opts": options()})
+
     # --- pages -----------------------------------------------------------
     @app.get("/", response_class=HTMLResponse)
     def index_page(request: Request) -> HTMLResponse:
         corpora = [corpus_to_dict(c) for c in container.corpora.list()]
-        return templates.TemplateResponse(request, "index.html", {"corpora": corpora, "opts": options()})
+        return page(request, "index.html", {"corpora": corpora})
+
+    @app.get("/corpora/{corpus_id}/sources", response_class=HTMLResponse)
+    def sources_page(request: Request, corpus_id: str) -> HTMLResponse:
+        corpus = get_corpus(corpus_id)
+        return page(request, "sources.html", {"corpus": corpus_to_dict(corpus)}, corpus_id=corpus_id)
 
     @app.get("/corpora/{corpus_id}", response_class=HTMLResponse)
-    def corpus_page(request: Request, corpus_id: str) -> HTMLResponse:
+    def ask_page(request: Request, corpus_id: str) -> Response:
         corpus = get_corpus(corpus_id)
-        runs = [run_to_dict(r) for r in container.runs.list_for_corpus(corpus_id)]
+        if corpus.status != "ready":
+            return RedirectResponse(f"/corpora/{corpus_id}/sources", status_code=303)
         queries = [q.render(corpus.person) for q in QUERIES]
-        ctx = {"corpus": corpus_to_dict(corpus), "runs": runs, "opts": options(), "queries": queries}
-        return templates.TemplateResponse(request, "corpus.html", ctx)
+        ctx = {"corpus": corpus_to_dict(corpus), "queries": queries}
+        return page(request, "ask.html", ctx, corpus_id=corpus_id, step="ask")
 
-    @app.get("/corpora/{corpus_id}/compare/{comparison_id}", response_class=HTMLResponse)
-    def compare_page(request: Request, corpus_id: str, comparison_id: str) -> HTMLResponse:
-        ctx = {"corpus": corpus_to_dict(get_corpus(corpus_id)), "cmp": comparison(corpus_id, comparison_id)}
-        return templates.TemplateResponse(request, "compare.html", ctx)
+    @app.get("/corpora/{corpus_id}/results/{result_id}", response_class=HTMLResponse)
+    def results_page(request: Request, corpus_id: str, result_id: str) -> HTMLResponse:
+        ctx = {"corpus": corpus_to_dict(get_corpus(corpus_id)), "cmp": comparison(corpus_id, result_id)}
+        return page(request, "results.html", ctx, corpus_id=corpus_id, step="results", result_id=result_id)
 
-    @app.get("/runs/{run_id}", response_class=HTMLResponse)
-    def run_page(request: Request, run_id: str) -> HTMLResponse:
-        return templates.TemplateResponse(request, "run.html", {"run": run_to_dict(get_run(run_id))})
+    # Older links: a comparison or a single run now both live on the results page.
+    @app.get("/corpora/{corpus_id}/compare/{comparison_id}")
+    def compare_page(corpus_id: str, comparison_id: str) -> RedirectResponse:
+        return RedirectResponse(f"/corpora/{corpus_id}/results/{comparison_id}", status_code=301)
+
+    @app.get("/runs/{run_id}")
+    def run_page(run_id: str) -> RedirectResponse:
+        run = get_run(run_id)
+        url = f"/corpora/{run.corpus_id}/results/{result_key(run)}?run={run.run_id}"
+        return RedirectResponse(url, status_code=301)
 
     # --- API ---------------------------------------------------------------
     @app.get("/api/health")
@@ -224,11 +270,25 @@ def create_app(container: Container) -> FastAPI:
         runs = container.story.start_many(corpus_id, body.kind, targets, body.question)
         for run in runs:
             container.jobs.submit(container.story.execute, run.run_id)
-        return {"comparison_id": runs[0].comparison_id, "run_ids": [r.run_id for r in runs]}
+        return {
+            "comparison_id": runs[0].comparison_id,
+            "result_id": result_key(runs[0]),
+            "run_ids": [r.run_id for r in runs],
+        }
 
     @app.get("/api/corpora/{corpus_id}/comparisons/{comparison_id}")
     def comparison_detail(corpus_id: str, comparison_id: str) -> dict[str, Any]:
         return comparison(corpus_id, comparison_id)
+
+    @app.post("/api/corpora/{corpus_id}/comparisons/{result_id}/models", status_code=202)
+    def add_model(request: Request, corpus_id: str, result_id: str, body: RunRequest) -> dict[str, Any]:
+        """Run an existing result's story or question on one more model, shown beside it.
+        `result_id` is a comparison_id, or the run_id of a result that so far has one model."""
+        container.story.comparison(corpus_id, result_id)  # 404 before charging
+        charge(request)
+        run = container.story.add_model(corpus_id, result_id, Target(body.provider, body.model))
+        container.jobs.submit(container.story.execute, run.run_id)
+        return run_to_dict(container.runs.get(run.run_id) or run)
 
     @app.get("/api/runs/{run_id}")
     def run_detail(run_id: str) -> dict[str, Any]:

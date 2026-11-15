@@ -62,6 +62,11 @@ def _new_id(prefix: str = "") -> str:
     return f"{prefix}{uuid.uuid4().hex[:10]}"
 
 
+def result_key(run: StoryRun) -> str:
+    """Which result a run is shown in: its group, or itself when it ran alone."""
+    return run.comparison_id or run.run_id
+
+
 class IngestService:
     def __init__(
         self,
@@ -347,11 +352,33 @@ class StoryService:
             for p, m in resolved
         ]
 
-    def comparison(self, corpus_id: str, comparison_id: str) -> list[StoryRun]:
-        runs = [r for r in self._runs.list_for_corpus(corpus_id) if r.comparison_id == comparison_id]
+    def comparison(self, corpus_id: str, result_id: str) -> list[StoryRun]:
+        """The runs of one result. A result is a lone run (keyed by its run_id) or a group of
+        runs sharing a comparison_id. A model added to a lone run joins it under that run_id,
+        so the original run is never rewritten."""
+        runs = [r for r in self._runs.list_for_corpus(corpus_id) if result_key(r) == result_id]
         if not runs:
-            raise NotFound(comparison_id)
+            raise NotFound(result_id)
         return sorted(runs, key=lambda r: (r.created_at, r.run_id))
+
+    def add_model(self, corpus_id: str, result_id: str, target: Target) -> StoryRun:
+        """Queue the same story or question on one more model, beside an existing result."""
+        runs = self.comparison(corpus_id, result_id)
+        limit = self._config.max_compare_targets
+        if len(runs) >= limit:
+            raise ValidationError(f"a result can hold at most {limit} models")
+        resolved = self._check_target(target)
+        if any((r.provider, r.model) == resolved for r in runs):
+            raise ValidationError("that model is already in this result")
+        first = runs[0]
+        return self._new_run(
+            self._ready_corpus(corpus_id),
+            Target(*resolved),
+            first.kind,
+            first.total,
+            question=first.question,
+            comparison_id=result_id,
+        )
 
     # --- running -------------------------------------------------------------
     def execute(self, run_id: str) -> StoryRun:

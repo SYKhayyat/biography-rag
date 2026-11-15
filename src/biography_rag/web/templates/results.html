@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ cmp.question if cmp.kind == 'ask' else 'The story of ' ~ corpus.person }} · Biography RAG{% endblock %}
+{% block content %}
+<script id="cmp-data" type="application/json">{{ cmp|tojson }}</script>
+<section id="compare" data-corpus="{{ corpus.corpus_id }}" data-comparison="{{ cmp.comparison_id }}">
+  <p class="eyebrow">Step 3 · Results</p>
+  <h1>{% if cmp.kind == 'ask' %}{{ cmp.question }}{% else %}The story of {{ corpus.person }}{% endif %}</h1>
+
+  <div class="toolbar">
+    <span class="muted small" id="cmp-sub"></span>
+    <span class="hidden-models" id="hidden-models" hidden></span>
+    <span class="toolbar-end">
+      <button type="button" class="secondary" id="add-open">+ Add a model</button>
+      <form class="add-form" id="add-form" hidden>
+        <select aria-label="Model to add"></select>
+        <button type="submit" class="primary">Run</button>
+        <button type="button" class="secondary" id="add-cancel">Cancel</button>
+      </form>
+    </span>
+  </div>
+  <p class="error" id="cmp-error" hidden></p>
+</section>
+
+<div class="compare-grid" id="cmp-grid"></div>
+
+<section id="detail" class="detail" hidden></section>
+
+{% if cmp.kind == 'story' %}
+<section class="card" id="cmp-matrix-card" hidden>
+  <h2>Question by question</h2>
+  <p class="muted small">✓ answered (with the passages cited) · – "not in the sources"</p>
+  <div class="scroll"><table id="cmp-matrix"></table></div>
+</section>
+{% endif %}
+<p class="muted small">Click a citation like <span class="chip">d01-0003</span> to read the passage.</p>
+{% endblock %}

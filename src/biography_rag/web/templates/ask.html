@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ corpus.person }} · ask · Biography RAG{% endblock %}
+{% block content %}
+<section id="corpus" data-corpus="{{ corpus.corpus_id }}" data-status="{{ corpus.status }}">
+  <p class="eyebrow">Step 2 · Ask</p>
+  <h1>{{ corpus.person }}</h1>
+
+  <form id="ask-form" class="card ask-card" data-kind="story">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" class="tab" data-tab="story" aria-selected="true">Full story</button>
+      <button type="button" role="tab" class="tab" data-tab="ask" aria-selected="false">One question</button>
+    </div>
+
+    <div class="tab-panel" data-panel="story">
+      <p>Asks 20 questions about {{ corpus.person }}'s life, then writes a story from the answers.
+        Each sentence cites its source, and any sentence the sources don't back up is flagged.</p>
+      <details><summary class="muted">The 20 questions</summary><ol class="small">{% for q in queries %}<li>{{ q }}</li>{% endfor %}</ol></details>
+    </div>
+
+    <div class="tab-panel" data-panel="ask" hidden>
+      <label class="stack-label">Question
+        <input name="question" maxlength="500" placeholder="Whose face is on the $100 bill?" autocomplete="off"></label>
+      <p class="muted small">To catch a model making things up, ask something true that your sources don't mention.
+        The right answer is "Not in the sources."</p>
+    </div>
+
+    <div class="go-row">
+      <div class="models">
+        <span class="models-label">Model</span>
+        <div class="model-rows"></div>
+        <button type="button" class="secondary add-row">+ Another model</button>
+      </div>
+      <button type="submit" class="primary" {% if not opts.providers %}disabled{% endif %}>Write the story</button>
+    </div>
+    {% if not opts.providers %}<p class="error">No models available. Add an API key and restart.</p>{% endif %}
+    <p class="error" id="action-error" hidden></p>
+  </form>
+</section>
+{% endblock %}

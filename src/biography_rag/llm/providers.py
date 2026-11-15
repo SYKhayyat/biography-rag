@@ -44,6 +44,7 @@ class ProviderSpec:
     timeout: float = 120.0  # seconds to wait for the next streamed bytes
     max_retries: int = 3  # SDK retries with backoff on 429/5xx, honouring Retry-After
     concurrency: int = 4  # calls in flight per provider, across all runs
+    rate_limit_wait: float = 120.0  # after the SDK's quick retries, keep waiting out 429s this long
 
     @property
     def model(self) -> str:
@@ -103,7 +104,8 @@ def provider_specs(settings: Settings) -> dict[str, ProviderSpec]:
                 ModelOption("z-ai/glm-5.3-flash", slow=True, extra_body=NO_THINKING),
             ),
             slow_timeout,  # NIM queues requests; minutes before the first token are normal
-            concurrency=3,
+            concurrency=2,  # the free tier allows ~40 requests a minute
+            rate_limit_wait=240.0,
         ),
         ProviderSpec(
             "cheapllm",
@@ -155,11 +157,15 @@ class OpenAICompatibleChat:
         option: ModelOption,
         client: Any,
         limiter: threading.BoundedSemaphore | None = None,
+        rate_limit_wait: float = 0.0,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self._provider = provider
         self._option = option
         self._client = client
         self._limiter = limiter or threading.BoundedSemaphore(64)
+        self._rate_limit_wait = rate_limit_wait
+        self._sleep = sleep
 
     @property
     def provider(self) -> str:
@@ -170,6 +176,22 @@ class OpenAICompatibleChat:
         return self._option.id
 
     def complete(self, messages: list[Message], *, max_tokens: int = 1200) -> str:
+        """The SDK retries a 429 for a few seconds; per-minute quotas need longer. Wait with
+        growing pauses (honouring Retry-After), outside the limiter so others can proceed."""
+        waited, pause = 0.0, 5.0
+        while True:
+            try:
+                return self._complete_once(messages, max_tokens)
+            except Exception as exc:
+                if getattr(exc, "status_code", None) != 429 or waited >= self._rate_limit_wait:
+                    raise
+                delay = min(max(_retry_after(exc), pause), 30.0, self._rate_limit_wait - waited)
+                log.info("%s rate-limited; waiting %.0fs", self._option.id, delay)
+                self._sleep(delay)
+                waited += delay
+                pause = min(pause * 2, 30.0)
+
+    def _complete_once(self, messages: list[Message], max_tokens: int) -> str:
         with self._limiter:
             stream = self._client.chat.completions.create(
                 model=self._option.id,
@@ -229,6 +251,14 @@ class FallbackChat:
 ClientFactory = Callable[[ProviderSpec], Any]
 
 
+def _retry_after(exc: Exception) -> float:
+    headers = getattr(getattr(exc, "response", None), "headers", None) or {}
+    try:
+        return float(headers.get("retry-after", 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _openai_client(spec: ProviderSpec) -> Any:
     from openai import OpenAI
 
@@ -263,7 +293,9 @@ class ChatModelFactory:
     def _single(self, spec: ProviderSpec, option: ModelOption) -> ChatModel:
         if spec.name not in self._clients:
             self._clients[spec.name] = self._client_factory(spec)
-        return OpenAICompatibleChat(spec.name, option, self._clients[spec.name], self._limiters[spec.name])
+        return OpenAICompatibleChat(
+            spec.name, option, self._clients[spec.name], self._limiters[spec.name], spec.rate_limit_wait
+        )
 
     def create(self, provider: str | None = None, model: str | None = None) -> ChatModel:
         name = provider or self.default_provider

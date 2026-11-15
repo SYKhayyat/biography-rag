@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ corpus.person }} · sources · Biography RAG{% endblock %}
+{% block content %}
+<section id="corpus" data-corpus="{{ corpus.corpus_id }}" data-status="{{ corpus.status }}">
+  <p class="eyebrow">Step 1 · Sources</p>
+  <h1>{{ corpus.person }}</h1>
+
+  {% if corpus.status == 'ingesting' %}
+  <div class="card notice">
+    <p><span class="spinner" aria-hidden="true"></span> <strong>Reading the files…</strong></p>
+    <p class="muted">This can take a minute. You'll go to the next step when it's done.</p>
+  </div>
+  {% elif corpus.status == 'failed' %}
+  <div class="card notice bad">
+    <p><strong>Couldn't read the files.</strong></p>
+    {% if corpus.error %}<p class="error">{{ corpus.error }}</p>{% endif %}
+    <p><a href="/">Upload again</a></p>
+  </div>
+  {% else %}
+  <div class="card notice good">
+    <p><strong>✓ Ready.</strong> {{ corpus.documents|length }} files, {{ corpus.chunk_count }} passages.</p>
+    <p><a class="button primary" href="/corpora/{{ corpus.corpus_id }}">Next: ask</a></p>
+  </div>
+  {% endif %}
+
+  <section class="card">
+    <h2>Files</h2>
+    <ol class="docs">{% for d in corpus.documents %}
+      <li><code>d{{ '%02d' % loop.index }}</code> {{ d }}{% if ('d%02d' % loop.index) in corpus.first_person_docs %} <span class="muted">· written by {{ corpus.person }}</span>{% endif %}</li>
+    {% endfor %}</ol>
+    <p class="muted small">Embeddings: <code>{{ corpus.embedder_id }}</code></p>
+  </section>
+</section>
+{% endblock %}

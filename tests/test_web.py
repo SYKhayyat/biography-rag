@@ -153,7 +153,53 @@ def test_single_target_compare_is_a_plain_run(two_model_client):
     corpus_id = upload(client).json()["corpus_id"]
     res = client.post(f"/api/corpora/{corpus_id}/compare", json={"kind": "story", "targets": [{"provider": "other"}]})
     assert res.status_code == 202 and res.json()["comparison_id"] is None
+    assert res.json()["result_id"] == res.json()["run_ids"][0]
     assert client.get(f"/api/runs/{res.json()['run_ids'][0]}").json()["status"] == "done"
+
+
+def test_add_model_to_a_single_result(two_model_client):
+    client = two_model_client
+    corpus_id = upload(client).json()["corpus_id"]
+    body = {"kind": "ask", "question": "Where was he born?", "targets": [{"provider": "fake"}]}
+    first = client.post(f"/api/corpora/{corpus_id}/compare", json=body).json()["result_id"]
+    base = f"/api/corpora/{corpus_id}/comparisons/{first}"
+    assert [r["run_id"] for r in client.get(base).json()["runs"]] == [first]
+
+    added = client.post(f"{base}/models", json={"provider": "other"})
+    assert added.status_code == 202
+    assert added.json()["question"] == "Where was he born?" and added.json()["kind"] == "ask"
+
+    runs = client.get(base).json()["runs"]
+    assert [(r["provider"], r["status"]) for r in runs] == [("fake", "done"), ("other", "done")]
+    assert runs[0]["comparison_id"] is None  # the original run is left as it was
+    page = client.get(f"/corpora/{corpus_id}/results/{first}")
+    assert page.status_code == 200 and "Where was he born?" in page.text and "2 models" in page.text
+
+    assert client.post(f"{base}/models", json={"provider": "other"}).status_code == 422  # already there
+    assert client.post(f"/api/corpora/{corpus_id}/comparisons/nope/models", json={}).status_code == 404
+
+
+def test_add_model_respects_the_cap(tmp_path, chat):
+    other = ScriptedChat(extractive_responder, provider="other", model="o")
+    with make_client(tmp_path, chat, other, max_compare_targets=2) as client:
+        corpus_id = upload(client).json()["corpus_id"]
+        body = {"kind": "story", "targets": [{"provider": "fake"}, {"provider": "other"}]}
+        cmp_id = client.post(f"/api/corpora/{corpus_id}/compare", json=body).json()["result_id"]
+        res = client.post(f"/api/corpora/{corpus_id}/comparisons/{cmp_id}/models", json={"provider": "fake"})
+        assert res.status_code == 422 and "at most 2" in res.json()["detail"]
+
+
+def test_pages_walk_the_steps(client):
+    assert "Add a person" in client.get("/").text
+    corpus_id = upload(client).json()["corpus_id"]
+    sources = client.get(f"/corpora/{corpus_id}/sources")
+    assert sources.status_code == 200 and "Next: ask" in sources.text
+    ask = client.get(f"/corpora/{corpus_id}")
+    assert "Write the story" in ask.text and "One question" in ask.text and "+ Another model" in ask.text
+    run_id = client.post(f"/api/corpora/{corpus_id}/runs", json={}).json()["run_id"]
+    old = client.get(f"/runs/{run_id}", follow_redirects=False)
+    assert old.status_code == 301 and old.headers["location"] == f"/corpora/{corpus_id}/results/{run_id}?run={run_id}"
+    assert "The story" in client.get(f"/corpora/{corpus_id}/results/{run_id}").text
 
 
 @pytest.mark.parametrize(

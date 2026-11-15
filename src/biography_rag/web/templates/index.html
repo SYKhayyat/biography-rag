@@ -1,44 +1,48 @@
 {% extends "base.html" %}
 {% block content %}
+<p class="eyebrow">Step 1</p>
+<h1>People</h1>
+
+{% if corpora %}
 <section class="card">
-  <h1>New corpus</h1>
-  <p class="muted">Upload pages about one person (.txt, .md, .html, .pdf; up to {{ opts.max_files }} files, {{ opts.max_upload_mb }} MB).
-    They are chunked, embedded and indexed; then 20 fixed questions are answered only from what is retrieved.</p>
-  <form id="upload-form" class="stack">
-    <label>Person <input name="person" required maxlength="120" placeholder="e.g. Benjamin Franklin"></label>
-    <label>Files <input type="file" name="files" multiple required accept=".txt,.md,.text,.html,.htm,.pdf"></label>
-    <label>Embeddings
-      <select name="embedder">
-        {% for e in opts.embedders %}<option value="{{ e }}" {% if e == opts.default_embedder %}selected{% endif %}>{{ e }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Written by
-      <select name="narration">
-        <option value="auto" selected>Detect per file</option>
-        <option value="self">The person (memoir, autobiography)</option>
-        <option value="others">Others (biographies)</option>
-      </select>
-    </label>
-    <button type="submit">Upload &amp; index</button>
-    <p class="error" id="upload-error" hidden></p>
-  </form>
+  <h2>Your people</h2>
+  <ul class="people-grid">
+    {% for c in corpora %}
+    <li><a class="person-card" href="/corpora/{{ c.corpus_id }}{% if c.status != 'ready' %}/sources{% endif %}">
+      <strong>{{ c.person }}</strong>
+      <span class="muted small">{{ c.documents|length }} file{{ '' if c.documents|length == 1 else 's' }}
+        {% if c.status != 'ready' %}· <span class="badge {{ c.status }}">{{ c.status }}</span>{% endif %}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
 </section>
+{% endif %}
 
 <section class="card">
-  <h2>Corpora</h2>
-  {% if corpora %}
-  <table>
-    <thead><tr><th>Person</th><th>Status</th><th>Docs</th><th>Chunks</th><th>Embedder</th></tr></thead>
-    <tbody>
-    {% for c in corpora %}
-      <tr>
-        <td><a href="/corpora/{{ c.corpus_id }}">{{ c.person }}</a></td>
-        <td><span class="badge {{ c.status }}">{{ c.status }}</span></td>
-        <td>{{ c.documents|length }}</td><td>{{ c.chunk_count }}</td><td><code>{{ c.embedder_id }}</code></td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}<p class="muted">None yet.</p>{% endif %}
+  <h2>Add a person</h2>
+  <p class="muted">Upload files about them (.txt, .md, .html or .pdf; up to {{ opts.max_files }} files, {{ opts.max_upload_mb }} MB in total).
+    Stories and answers will come only from these files.</p>
+  <form id="upload-form" class="stack">
+    <label>Person <input name="person" required maxlength="120" placeholder="e.g. Benjamin Franklin" autocomplete="off"></label>
+    <label>Files <input type="file" name="files" multiple required accept=".txt,.md,.text,.html,.htm,.pdf"></label>
+    <details class="advanced"><summary>Advanced</summary>
+      <div class="stack">
+        <label>Embeddings
+          <select name="embedder">
+            {% for e in opts.embedders %}<option value="{{ e }}" {% if e == opts.default_embedder %}selected{% endif %}>{{ e }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Written by
+          <select name="narration">
+            <option value="auto" selected>Detect per file</option>
+            <option value="self">The person (memoir, autobiography)</option>
+            <option value="others">Others (biographies)</option>
+          </select>
+        </label>
+      </div>
+    </details>
+    <div><button type="submit" class="primary">Upload</button></div>
+    <p class="error" id="upload-error" hidden></p>
+  </form>
 </section>
 {% endblock %}

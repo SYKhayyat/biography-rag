@@ -110,6 +110,39 @@ class TestStreamingChat:
         client = FakeClient("<think>let me see…</think>\nANSWER: yes")
         assert OpenAICompatibleChat("p", ModelOption("m"), client).complete([]) == "ANSWER: yes"
 
+    def test_waits_out_rate_limits_then_gives_up(self):
+        class RateLimited(Exception):
+            status_code = 429
+            response = SimpleNamespace(headers={"retry-after": "12"})
+
+        client = FakeClient(error=RateLimited())
+        naps: list[float] = []
+        chat = OpenAICompatibleChat("p", ModelOption("m"), client, rate_limit_wait=40, sleep=naps.append)
+        with pytest.raises(RateLimited):
+            chat.complete([])
+        assert naps == [12, 12, 16] and len(client.requests) == 4  # Retry-After honoured, total capped
+
+        client.error = None
+        naps.clear()
+        attempts = iter([RateLimited(), None])
+
+        def flaky(**kw):
+            if (err := next(attempts)) is not None:
+                raise err
+            return iter([_chunk("ok")])
+
+        client.chat.completions.create = flaky
+        assert chat.complete([]) == "ok" and naps == [12]
+
+    def test_other_errors_are_not_waited_on(self):
+        naps: list[float] = []
+        chat = OpenAICompatibleChat(
+            "p", ModelOption("m"), FakeClient(error=ValueError("x")), rate_limit_wait=60, sleep=naps.append
+        )
+        with pytest.raises(ValueError):
+            chat.complete([])
+        assert naps == []
+
     def test_limiter_caps_concurrent_calls(self):
         limiter = threading.BoundedSemaphore(1)
         limiter.acquire()  # someone else holds the only slot

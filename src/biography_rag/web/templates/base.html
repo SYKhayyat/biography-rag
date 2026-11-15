@@ -7,15 +7,73 @@
   <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-  <header class="top">
+{% set c = nav.corpus %}
+<div class="layout">
+  <nav class="sidebar" aria-label="Steps">
     <a class="brand" href="/">Biography&nbsp;RAG</a>
-    <span class="tag">stories woven only from your sources, every sentence cited</span>
-  </header>
+    <p class="tag">Life stories from your own sources</p>
+
+    <ol class="steps">
+      <li class="step {% if nav.step == 'sources' %}current{% endif %} {% if c and c.status == 'ready' %}complete{% endif %}">
+        <a class="step-head" href="{{ '/corpora/' ~ c.corpus_id ~ '/sources' if c else '/' }}">
+          <span class="num">{% if c and c.status == 'ready' %}✓{% else %}1{% endif %}</span> Sources</a>
+        {% if c %}
+        <a class="step-sub {% if nav.step == 'sources' %}here{% endif %}" href="/corpora/{{ c.corpus_id }}/sources">
+          {{ c.person }}
+          {% if c.status != 'ready' %}<span class="badge {{ c.status }}">{{ c.status }}</span>{% endif %}</a>
+        {% endif %}
+      </li>
+
+      {% set can_ask = c and c.status == 'ready' %}
+      <li class="step {% if nav.step == 'ask' %}current{% endif %} {% if not can_ask %}locked{% endif %} {% if nav.results %}complete{% endif %}">
+        {% if can_ask %}<a class="step-head" href="/corpora/{{ c.corpus_id }}">{% else %}<span class="step-head" title="Add a person first">{% endif %}
+          <span class="num">{% if nav.results %}✓{% else %}2{% endif %}</span> Ask
+        {% if can_ask %}</a>{% else %}</span>{% endif %}
+        {% if can_ask %}
+        <a class="step-sub {% if nav.step == 'ask' %}here{% endif %}" href="/corpora/{{ c.corpus_id }}">Story or question</a>
+        {% endif %}
+      </li>
+
+      <li class="step {% if nav.step == 'results' %}current{% endif %} {% if not nav.results %}locked{% endif %}">
+        {% if nav.results %}<a class="step-head" href="/corpora/{{ c.corpus_id }}/results/{{ nav.results[0].key }}">{% else %}<span class="step-head" title="Nothing here yet">{% endif %}
+          <span class="num">3</span> Results
+        {% if nav.results %}</a>{% else %}</span>{% endif %}
+        {% if nav.results %}
+        <ul class="history">
+          {% for r in nav.results %}
+          <li><a class="step-sub {% if r.key == nav.result_id %}here{% endif %}" href="/corpora/{{ c.corpus_id }}/results/{{ r.key }}">
+            <span class="dot {{ r.status }}" title="{{ r.status }}"></span>
+            <span class="h-title">{{ r.title }}</span>
+            <span class="h-meta">{% if r.models|length == 1 %}{{ r.models[0] }}{% else %}{{ r.models|length }} models{% endif %}</span>
+          </a></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+    </ol>
+
+    <div class="people">
+      <a class="new-person" href="/">+ New person</a>
+      {% set others = nav.people|rejectattr('corpus_id', 'equalto', c.corpus_id if c else '')|list %}
+      {% if others %}
+      <details {% if not c %}open{% endif %}>
+        <summary>{{ 'Other people' if c else 'People' }} ({{ others|length }})</summary>
+        <ul>{% for p in others %}
+          <li><a href="/corpora/{{ p.corpus_id }}{% if p.status != 'ready' %}/sources{% endif %}">{{ p.person }}</a>
+            {% if p.status != 'ready' %}<span class="badge {{ p.status }}">{{ p.status }}</span>{% endif %}</li>
+        {% endfor %}</ul>
+      </details>
+      {% endif %}
+    </div>
+  </nav>
+
   <main>{% block content %}{% endblock %}</main>
-  <aside id="chunk-panel" class="panel" hidden>
-    <div class="panel-head"><strong id="chunk-title"></strong><button type="button" id="chunk-close" aria-label="Close">×</button></div>
-    <div id="chunk-body" class="chunk-text"></div>
-  </aside>
-  <script src="/static/app.js"></script>
+</div>
+<aside id="chunk-panel" class="panel" hidden>
+  <div class="panel-head"><strong id="chunk-title"></strong><button type="button" id="chunk-close" aria-label="Close">×</button></div>
+  <div id="chunk-body" class="chunk-text"></div>
+</aside>
+<script id="opts" type="application/json">{{ opts|tojson }}</script>
+<script src="/static/app.js"></script>
 </body>
 </html>
