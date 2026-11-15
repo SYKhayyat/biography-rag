@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field, replace
 
 from biography_rag.domain import Chunk, QueryAnswer
 from biography_rag.llm.base import ChatModel, Message
-from biography_rag.rag.citations import cited_ids
+from biography_rag.rag.citations import cited_ids, fill_paragraph_citations
 from biography_rag.rag.grounding import gate
 from biography_rag.rag.prompts import NOT_IN_SOURCES_TOKEN, answer_messages, evidence_check_messages, weave_messages
 
@@ -54,9 +54,12 @@ class QueryAnswerer:
        passes step 1 but fails step 2.
     """
 
-    def __init__(self, chat: ChatModel, *, check_evidence: bool = True) -> None:
+    def __init__(
+        self, chat: ChatModel, *, check_evidence: bool = True, first_person_docs: Collection[str] = ()
+    ) -> None:
         self._chat = chat
         self._check_evidence = check_evidence
+        self.first_person_docs = frozenset(first_person_docs)  # doc ids the person narrates as "I"
 
     def answer(
         self, query_id: int, person: str, question: str, chunks: Sequence[Chunk]
@@ -64,7 +67,7 @@ class QueryAnswerer:
         ids = [c.chunk_id for c in chunks]
         if not chunks:  # nothing retrieved: never ask the model, it could only guess
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange([], None)
-        messages = answer_messages(person, question, chunks)
+        messages = answer_messages(person, question, chunks, self.first_person_docs)
         response = self._chat.complete(messages, max_tokens=1200)
         if _is_not_in_sources(response):
             return QueryAnswer(query_id, question, ids, None, []), LlmExchange(messages, response)
@@ -73,8 +76,11 @@ class QueryAnswerer:
         if result.answer is None or not self._check_evidence:
             return QueryAnswer(query_id, question, ids, result.answer, result.cited_ids), exchange
 
-        quotes = list(dict.fromkeys(e["quote"] for e in result.evidence if e["found"]))
-        check = evidence_check_messages(person, question, quotes)
+        found = [e for e in result.evidence if e["found"]]
+        quotes = list(dict.fromkeys(e["quote"] for e in found))
+        by_id = {c.chunk_id: c for c in chunks}
+        own = {e["quote"] for e in found if by_id[e["chunk_id"]].doc_id in self.first_person_docs}
+        check = evidence_check_messages(person, question, quotes, own)
         verdict = self._chat.complete(check, max_tokens=CHECK_MAX_TOKENS)
         exchange = replace(exchange, check_messages=check, check_response=verdict)
         if not says_yes(verdict):
@@ -91,5 +97,7 @@ class StoryWeaver:
         if not any(a.found for a in answers):
             return "", LlmExchange([], None)
         messages = weave_messages(person, answers, cited)
-        story = self._chat.complete(messages, max_tokens=3500)
-        return story, LlmExchange(messages, story)
+        raw = self._chat.complete(messages, max_tokens=3500)
+        # A sentence cited only by its paragraph's closing citation is checked against that snippet
+        # by the verifier, instead of being flagged as uncited; the log keeps the raw reply.
+        return fill_paragraph_citations(raw), LlmExchange(messages, raw)

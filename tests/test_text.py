@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from biography_rag.text import number_density
+from biography_rag.text import first_person_rate, is_first_person, number_density, to_first_person
 
 # Real chunks from the Franklin corpus (d01-0675, d05-1133, d06-0174, d03-0255).
 INDEX_PAGES = [
@@ -29,3 +29,33 @@ def test_narrative_with_dates_is_not(text):
 
 def test_empty_text():
     assert number_density("") == 0.0
+
+
+MEMOIR = (
+    "When I was nine my father sent me to Beis HaTalmud. I hated it, and I ran away to the park. "
+    '"You will learn," he told me. My mother was sick, and I sat with her every night.'
+)
+BIOGRAPHY = (
+    "Franklin was born in Boston. He was apprenticed to his brother James, a printer. "
+    '"I am resolved," Franklin wrote, "to be frugal." He later moved to Philadelphia.'
+)
+
+
+def test_first_person_detection_ignores_quoted_speech():
+    assert is_first_person(MEMOIR)
+    assert not is_first_person(BIOGRAPHY)  # the "I" is inside a quotation
+    assert first_person_rate("") == 0
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Where and when was Ann Lee born?", "Where and when was I born?"),
+        ("What is Ann Lee best known for?", "What am I best known for?"),
+        ("Who were Ann Lee's parents?", "Who were my parents?"),
+        ("Who were the main influences on Ann Lee?", "Who were the main influences on me?"),
+        ("What did Ann Lee study?", "What did I study?"),
+    ],
+)
+def test_to_first_person(question, expected):
+    assert to_first_person(question, "Ann Lee") == expected

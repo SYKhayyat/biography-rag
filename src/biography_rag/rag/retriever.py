@@ -33,26 +33,42 @@ class HybridRetriever:
         self._embedder = embedder
         self._config = config
 
-    def retrieve(self, corpus_id: str, question: str, keywords: str = "") -> list[RetrievedChunk]:
+    def retrieve(
+        self, corpus_id: str, question: str, keywords: str = "", alt_question: str | None = None
+    ) -> list[RetrievedChunk]:
+        """``alt_question`` is a second phrasing searched alongside the first (both arms), e.g. the
+        question in the first person for a memoir, where the text says "I" and rarely the name."""
         cfg = self._config
-        dense = self._index.vector_search(corpus_id, self._embedder.embed_query(question), cfg.candidate_k)
-        dense = [(c, s) for c, s in dense if s >= cfg.min_similarity]
-        sparse = self._index.keyword_search(corpus_id, f"{question} {keywords}".strip(), cfg.candidate_k)
-        if cfg.max_number_density is not None:
-            dense = [(c, s) for c, s in dense if number_density(c.text) <= cfg.max_number_density]
-            sparse = [(c, s) for c, s in sparse if number_density(c.text) <= cfg.max_number_density]
+        phrasings = [question] + ([alt_question] if alt_question and alt_question != question else [])
+        dense_arms, sparse_arms = [], []
+        for q in phrasings:
+            dense = self._index.vector_search(corpus_id, self._embedder.embed_query(q), cfg.candidate_k)
+            dense = [(c, s) for c, s in dense if s >= cfg.min_similarity]
+            sparse = self._index.keyword_search(corpus_id, f"{q} {keywords}".strip(), cfg.candidate_k)
+            if cfg.max_number_density is not None:
+                dense = [(c, s) for c, s in dense if number_density(c.text) <= cfg.max_number_density]
+                sparse = [(c, s) for c, s in sparse if number_density(c.text) <= cfg.max_number_density]
+            dense_arms.append(dense)
+            sparse_arms.append(sparse)
 
         fused: dict[str, float] = {}
         chunks: dict[str, Chunk] = {}
         cosine: dict[str, float] = {}
         vrank: dict[str, int] = {}
         krank: dict[str, int] = {}
-        for rank, (chunk, sim) in enumerate(dense, 1):
-            fused[chunk.chunk_id] = fused.get(chunk.chunk_id, 0.0) + 1 / (cfg.rrf_k + rank)
-            chunks[chunk.chunk_id], cosine[chunk.chunk_id], vrank[chunk.chunk_id] = chunk, sim, rank
-        for rank, (chunk, _score) in enumerate(sparse, 1):
-            fused[chunk.chunk_id] = fused.get(chunk.chunk_id, 0.0) + 1 / (cfg.rrf_k + rank)
-            chunks[chunk.chunk_id], krank[chunk.chunk_id] = chunk, rank
+        for dense in dense_arms:
+            for rank, (chunk, sim) in enumerate(dense, 1):
+                cid = chunk.chunk_id
+                fused[cid] = fused.get(cid, 0.0) + 1 / (cfg.rrf_k + rank)
+                chunks[cid] = chunk
+                cosine[cid] = max(sim, cosine.get(cid, sim))
+                vrank[cid] = min(rank, vrank.get(cid, rank))
+        for sparse in sparse_arms:
+            for rank, (chunk, _score) in enumerate(sparse, 1):
+                cid = chunk.chunk_id
+                fused[cid] = fused.get(cid, 0.0) + 1 / (cfg.rrf_k + rank)
+                chunks[cid] = chunk
+                krank[cid] = min(rank, krank.get(cid, rank))
 
         best = sorted(fused, key=lambda cid: (-fused[cid], cid))[: cfg.top_k]
         return [

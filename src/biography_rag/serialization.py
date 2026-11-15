@@ -35,6 +35,8 @@ def corpus_to_dict(c: Corpus) -> dict[str, Any]:
         "chunk_count": c.chunk_count,
         "error": c.error,
         "created_at": _dt(c.created_at),
+        "narration": c.narration,
+        "first_person_docs": c.first_person_docs,
     }
 
 
@@ -48,6 +50,8 @@ def corpus_from_dict(d: dict[str, Any]) -> Corpus:
         chunk_count=int(d.get("chunk_count") or 0),
         error=d.get("error"),
         created_at=_parse_dt(d.get("created_at")) or datetime.now().astimezone(),
+        narration=d.get("narration") or "auto",
+        first_person_docs=list(d.get("first_person_docs") or []),
     )
 
 

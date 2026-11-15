@@ -55,6 +55,13 @@ class Corpus:
     chunk_count: int = 0
     error: str | None = None
     created_at: datetime = field(default_factory=utcnow)
+    # Who wrote the pages: "auto" (detect per document), "self" (the person: a memoir or
+    # autobiography) or "others" (biographies). Detection fills ``first_person_docs``.
+    narration: str = "auto"
+    first_person_docs: list[str] = field(default_factory=list)  # doc ids narrated by the person as "I"
+
+
+NARRATIONS = ("auto", "self", "others")
 
 
 class RunStatus(StrEnum):

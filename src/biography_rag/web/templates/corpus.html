@@ -7,7 +7,7 @@
     {{ corpus.documents|length }} documents · {{ corpus.chunk_count }} chunks · <code>{{ corpus.embedder_id }}</code></p>
   {% if corpus.error %}<p class="error">{{ corpus.error }}</p>{% endif %}
   <details><summary>Documents</summary>
-    <ol>{% for d in corpus.documents %}<li><code>d{{ '%02d' % loop.index }}</code> {{ d }}</li>{% endfor %}</ol>
+    <ol>{% for d in corpus.documents %}<li><code>d{{ '%02d' % loop.index }}</code> {{ d }}{% if ('d%02d' % loop.index) in corpus.first_person_docs %} <span class="muted">· first person</span>{% endif %}</li>{% endfor %}</ol>
   </details>
 </section>
 

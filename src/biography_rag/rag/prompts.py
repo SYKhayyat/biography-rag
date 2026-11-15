@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 
 from biography_rag.domain import Chunk, QueryAnswer
 from biography_rag.llm.base import Message
@@ -23,6 +23,8 @@ snippet, the answer is {NOT_IN_SOURCES_TOKEN}.
 4. Keep track of who is who: attach each fact to the person the snippet attaches it to \
 (a son is not a grandson; one child's death is not another's).
 5. If the snippets disagree, say so and cite both.
+6. A snippet marked "(first person)" is {{person}}'s own account: there "I", "me" and "my" mean \
+{{person}}, except inside quoted speech by someone else. Answer in the third person about {{person}}.
 
 Reply in exactly this format:
 EVIDENCE: "<exact words copied from a snippet>" [<snippet id>]
@@ -34,7 +36,9 @@ for example [d01-0042] or [d01-0042, d03-0007]>
 Do not mention "snippets", "sources" or "the text" in the answer."""
 
 EVIDENCE_CHECK_SYSTEM = """You check whether quoted evidence answers a question about {person}. \
-You see only the quotes, not where they came from.
+You see only the quotes, not where they came from, except that a quote marked "(first person)" \
+comes from {person}'s own account: there "I", "me" and "my" mean {person}, unless the words are \
+someone else's quoted speech.
 
 Reply YES only if the quotes themselves state the answer (a paraphrase of what they say is fine). \
 Reply NO if they merely mention the same person, object or topic, or if answering would need any fact \
@@ -63,19 +67,29 @@ Reply with JSON only: a list of objects {"i": <sentence number>, "supported": tr
 "reason": "<short reason if false>"}. Include every sentence."""
 
 
-def _snippets(chunks: Sequence[Chunk]) -> str:
-    return "\n\n".join(f"[{c.chunk_id}]\n{c.text}" for c in chunks)
+FIRST_PERSON_MARK = "(first person)"
 
 
-def answer_messages(person: str, question: str, chunks: Sequence[Chunk]) -> list[Message]:
+def _snippets(chunks: Sequence[Chunk], first_person_docs: Collection[str] = ()) -> str:
+    return "\n\n".join(
+        f"[{c.chunk_id}]{' ' + FIRST_PERSON_MARK if c.doc_id in first_person_docs else ''}\n{c.text}" for c in chunks
+    )
+
+
+def answer_messages(
+    person: str, question: str, chunks: Sequence[Chunk], first_person_docs: Collection[str] = ()
+) -> list[Message]:
     return [
         {"role": "system", "content": ANSWER_SYSTEM.format(person=person)},
-        {"role": "user", "content": f"Question: {question}\n\nSnippets:\n\n{_snippets(chunks)}"},
+        {"role": "user", "content": f"Question: {question}\n\nSnippets:\n\n{_snippets(chunks, first_person_docs)}"},
     ]
 
 
-def evidence_check_messages(person: str, question: str, quotes: Sequence[str]) -> list[Message]:
-    listed = "\n".join(f'- "{q}"' for q in quotes)
+def evidence_check_messages(
+    person: str, question: str, quotes: Sequence[str], first_person: Collection[str] = ()
+) -> list[Message]:
+    """``first_person``: the quotes that come from the person's own (first-person) account."""
+    listed = "\n".join(f'- "{q}"' + (f" {FIRST_PERSON_MARK}" if q in first_person else "") for q in quotes)
     return [
         {"role": "system", "content": EVIDENCE_CHECK_SYSTEM.format(person=person)},
         {"role": "user", "content": f"Question: {question}\n\nQuotes:\n{listed}"},

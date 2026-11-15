@@ -76,14 +76,25 @@ def strip_boilerplate(text: str) -> str:
     return text
 
 
+_ANCHOR_LINK = re.compile(r"\[[^\[\]]*\]\(#[^)]*\)")
+
+
+def is_link_list(paragraph: str) -> bool:
+    """A markdown table of contents: mostly links to in-page anchors. It names every topic
+    and states nothing, so like a back-of-book index it would match every question."""
+    links = _ANCHOR_LINK.findall(paragraph)
+    return len(links) >= 3 and sum(map(len, links)) >= 0.5 * len(paragraph)
+
+
 def normalize(text: str) -> str:
-    """Unwrap hard-wrapped lines inside paragraphs; keep blank lines as paragraph breaks."""
+    """Unwrap hard-wrapped lines inside paragraphs; keep blank lines as paragraph breaks.
+    Tables of contents (paragraphs of in-page anchor links) are dropped."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t ]+", " ", text)
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)  # de-hyphenate line-break splits
     paragraphs = re.split(r"\n\s*\n", text)
     cleaned = [re.sub(r"\s*\n\s*", " ", p).strip() for p in paragraphs]
-    return "\n\n".join(p for p in cleaned if p)
+    return "\n\n".join(p for p in cleaned if p and not is_link_list(p))
 
 
 def extract_text(filename: str, data: bytes) -> str:

@@ -37,6 +37,46 @@ def cited_ids(text: str) -> list[str]:
     return seen
 
 
+def keep_citations(text: str, allowed) -> str:
+    """Remove chunk ids not in ``allowed`` from every bracket; drop brackets left empty."""
+
+    def fix(m: re.Match) -> str:
+        group = m.group(1)
+        ids = CHUNK_ID.findall(group)
+        if not ids:
+            return m.group(0)
+        kept = [i for i in ids if i in allowed]
+        return f"[{', '.join(kept)}]" if kept else ""
+
+    return re.sub(r"\s+([.,;:!?])", r"\1", _BRACKET.sub(fix, text)).strip()
+
+
+def cite_forward(paragraph: str) -> list[tuple[str, bool]]:
+    """The paragraph's sentences, each with whether it borrowed a citation: an uncited sentence
+    takes the ids of the next cited sentence in the paragraph (some models cite once, at the end
+    of a paragraph). Uncited sentences with no citation after them stay uncited."""
+    out: list[tuple[str, bool]] = []
+    pending: list[str] = []
+    for s in split_sentences(paragraph):
+        ids = cited_ids(s)
+        if not ids:
+            pending.append(s)
+            continue
+        tag = f" [{', '.join(ids)}]"
+        for p in pending:
+            out.append((re.sub(r"([.!?][\"”’']?)?$", lambda m, tag=tag: tag + (m.group(1) or ""), p, count=1), True))
+        pending = []
+        out.append((s, False))
+    out.extend((p, False) for p in pending)
+    return out
+
+
+def fill_paragraph_citations(text: str) -> str:
+    """``text`` with every uncited sentence given its paragraph's next citation (see cite_forward)."""
+    paragraphs = (cite_forward(p) for p in re.split(r"\n\s*\n", text))
+    return "\n\n".join(" ".join(s for s, _ in pairs) for pairs in paragraphs if pairs)
+
+
 def strip_citations(text: str) -> str:
     return re.sub(r"\s+([.,;:!?])", r"\1", _BRACKET.sub("", text)).strip()
 

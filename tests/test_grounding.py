@@ -101,3 +101,27 @@ class TestGate:
     def test_curly_quotes_and_missing_answer_label(self):
         r = gate("EVIDENCE: “flew a kite” [d01-0001]\nHe flew a kite [d01-0001].", CHUNKS)
         assert r.answer == "He flew a kite [d01-0001]."
+
+
+def test_unretrieved_id_is_removed_but_the_sentence_kept():
+    reply = (
+        'EVIDENCE: "was born in Boston in 1706" [d01-0000]\n'
+        "ANSWER: He was born in Boston in 1706 [d01-0000, d07-0123]. He liked cats [d07-0123]."
+    )
+    result = gate(reply, CHUNKS)
+    assert result.answer == "He was born in Boston in 1706 [d01-0000]."
+    assert result.cited_ids == ["d01-0000"]
+    assert "dropped 1" in result.reason and "d07-0123" in result.reason
+
+
+def test_paragraph_closing_citation_covers_its_uncited_sentences():
+    reply = (
+        'EVIDENCE: "was born in Boston in 1706" [d01-0000]\n'
+        "ANSWER: He was born in Boston. His father was Josiah, a candle-maker [d01-0000].\n\n"
+        "He flew a kite [d01-0001]. Nobody knows why."
+    )
+    result = gate(reply, CHUNKS)
+    assert result.answer == (
+        "He was born in Boston [d01-0000]. His father was Josiah, a candle-maker [d01-0000]. He flew a kite [d01-0001]."
+    )
+    assert "1 sentence(s) took" in result.reason and "dropped 1" in result.reason

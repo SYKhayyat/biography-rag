@@ -97,3 +97,21 @@ class TestIngestService:
         done = app_parts["ingest"].ingest(corpus.corpus_id, [f])
         assert done.status is CorpusStatus.FAILED
         assert "no text" in done.error
+
+
+def test_table_of_contents_link_lists_are_dropped():
+    toc = "[Chapter 1](#ch1) [Chapter 2](#ch2) [Chapter 3](#ch3) [Chapter 4](#ch4)"
+    text = normalize(f"# My Life\n\n{toc}\n\nI was born in a small town.")
+    assert "Chapter" not in text and "My Life" in text and "small town" in text
+
+
+def test_narration_detected_per_document(app_parts):
+    memoir = UploadedFile("memoir.txt", b"I was born in Vilna. My father taught me to read, and I loved it. " * 20)
+    bio = UploadedFile("bio.txt", b"Ann Lee was born in Vilna. Her father taught her to read. " * 20)
+    ingest = app_parts["ingest"]
+    auto = ingest.create("Ann Lee", [memoir, bio])
+    assert ingest.ingest(auto.corpus_id, [memoir, bio]).first_person_docs == ["d01"]
+    forced = ingest.create("Ann Lee", [memoir, bio], narration="others")
+    assert ingest.ingest(forced.corpus_id, [memoir, bio]).first_person_docs == []
+    with pytest.raises(ValidationError):
+        ingest.create("Ann Lee", [memoir], narration="ghost")

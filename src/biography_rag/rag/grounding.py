@@ -7,7 +7,10 @@ so "not in the sources" no longer depends on the model choosing to say so:
 * no EVIDENCE line whose quote really occurs in the snippet it names (see ``quote_coverage``)
   -> not in the sources
   (the model answered from memory and could only point at loosely related text);
-* answer sentences with no citation to a retrieved snippet are dropped;
+* an uncited sentence takes the citation of the next cited sentence in its paragraph (some
+  models cite once, at the end of a paragraph); the verifier still checks it against that snippet;
+* answer sentences with no citation to a retrieved snippet are dropped; a sentence that cites
+  a retrieved snippet and also an id that was not retrieved keeps the sentence, minus that id;
 * nothing left after that -> not in the sources.
 
 Every rejection or trim carries a reason, which the run log records next to the raw reply.
@@ -21,7 +24,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 
 from biography_rag.domain import Chunk
-from biography_rag.rag.citations import cited_ids, split_sentences
+from biography_rag.rag.citations import cite_forward, cited_ids, keep_citations
 from biography_rag.text import words
 
 _EVIDENCE = re.compile(r"^\s*EVIDENCE:\s*[\"“](.+?)[\"”]\s*\[([^\]]+)\]", re.M | re.I)
@@ -73,10 +76,26 @@ def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:
 
     match = _ANSWER.search(response)
     body = response[match.end() :] if match else _EVIDENCE.sub("", response)
-    sentences = split_sentences(body)
-    kept = [s for s in sentences if cited_ids(s) and all(i in chunks for i in cited_ids(s))]
+    sentences = [pair for paragraph in re.split(r"\n\s*\n", body) for pair in cite_forward(paragraph)]
+    kept: list[str] = []
+    stray: list[str] = []
+    borrowed = 0
+    for s, took in sentences:
+        ids = cited_ids(s)
+        if not any(i in chunks for i in ids):
+            continue
+        borrowed += took
+        bad = [i for i in ids if i not in chunks]
+        stray.extend(i for i in bad if i not in stray)
+        kept.append(keep_citations(s, chunks) if bad else s)
     if not kept:
         return GateResult(None, [], evidence, "no answer sentence cites a retrieved snippet")
     answer = " ".join(kept)
-    reason = f"dropped {len(sentences) - len(kept)} uncited sentence(s)" if len(kept) < len(sentences) else None
-    return GateResult(answer, cited_ids(answer), evidence, reason)
+    notes = []
+    if borrowed:
+        notes.append(f"{borrowed} sentence(s) took the citation that closes their paragraph")
+    if len(kept) < len(sentences):
+        notes.append(f"dropped {len(sentences) - len(kept)} uncited sentence(s)")
+    if stray:
+        notes.append(f"removed citation(s) to unretrieved {', '.join(stray)}")
+    return GateResult(answer, cited_ids(answer), evidence, "; ".join(notes) or None)

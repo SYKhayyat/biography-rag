@@ -166,6 +166,7 @@ def create_app(container: Container) -> FastAPI:
         person: Annotated[str, Form()],
         files: Annotated[list[UploadFile], File()],
         embedder: Annotated[str | None, Form()] = None,
+        narration: Annotated[str, Form()] = "auto",
     ) -> dict[str, Any]:
         if len(files) > settings.max_files:
             raise ValidationError(f"at most {settings.max_files} files per corpus")
@@ -177,7 +178,7 @@ def create_app(container: Container) -> FastAPI:
             if budget < 0:
                 raise HTTPException(413, f"uploads exceed {settings.max_upload_mb} MB in total")
             uploads.append(UploadedFile(Path(f.filename or "upload.txt").name, data))
-        corpus = container.ingest.create(person, uploads, embedder or None)
+        corpus = container.ingest.create(person, uploads, embedder or None, narration)
         container.jobs.submit(container.ingest.ingest, corpus.corpus_id, uploads)
         return corpus_to_dict(container.corpora.get(corpus.corpus_id) or corpus)
 

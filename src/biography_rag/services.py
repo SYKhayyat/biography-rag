@@ -13,6 +13,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import PurePath
 
 from biography_rag.domain import (
+    NARRATIONS,
     Chunk,
     Corpus,
     CorpusStatus,
@@ -34,6 +35,7 @@ from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, Veri
 from biography_rag.runlog import RunLogger
 from biography_rag.serialization import answer_to_dict, report_to_dict
 from biography_rag.store.base import ChunkIndex, CorpusRepository, RunRepository
+from biography_rag.text import is_first_person, to_first_person
 
 log = logging.getLogger(__name__)
 
@@ -75,8 +77,12 @@ class IngestService:
         self._chunker = chunker
         self._batch = embed_batch
 
-    def create(self, person: str, files: Sequence[UploadedFile], embedder: str | None = None) -> Corpus:
+    def create(
+        self, person: str, files: Sequence[UploadedFile], embedder: str | None = None, narration: str = "auto"
+    ) -> Corpus:
         person = " ".join(person.split())
+        if narration not in NARRATIONS:
+            raise ValidationError(f"narration must be one of {', '.join(NARRATIONS)}")
         if not person or len(person) > 120:
             raise ValidationError("give the person's name (1-120 characters)")
         if not files:
@@ -93,6 +99,7 @@ class IngestService:
             person=person,
             embedder_id=chosen.embedder_id,
             documents=[f.name for f in files],
+            narration=narration,
         )
         self._corpora.save(corpus)
         return corpus
@@ -103,17 +110,27 @@ class IngestService:
             raise NotFound(corpus_id)
         try:
             chunks: list[Chunk] = []
+            first_person: list[str] = []
             for n, file in enumerate(files, 1):
                 text = extract_text(file.name, file.data)
                 if text.strip():
-                    chunks.extend(self._chunker.chunk(SourceDocument(f"d{n:02d}", file.name, text)))
+                    doc_id = f"d{n:02d}"
+                    chunks.extend(self._chunker.chunk(SourceDocument(doc_id, file.name, text)))
+                    if corpus.narration == "self" or (corpus.narration == "auto" and is_first_person(text)):
+                        first_person.append(doc_id)
             if not chunks:
                 raise ValidationError("no text could be extracted from the uploaded files")
             embedder = self._embedders.by_id(corpus.embedder_id)
             for start in range(0, len(chunks), self._batch):
                 batch = chunks[start : start + self._batch]
                 self._index.add(corpus_id, batch, embedder.embed_documents([c.text for c in batch]))
-            corpus = replace(corpus, status=CorpusStatus.READY, chunk_count=len(chunks), error=None)
+            corpus = replace(
+                corpus,
+                status=CorpusStatus.READY,
+                chunk_count=len(chunks),
+                error=None,
+                first_person_docs=first_person,
+            )
         except Exception as exc:
             log.exception("ingest failed for %s", corpus_id)
             self._index.delete_corpus(corpus_id)
@@ -228,7 +245,10 @@ class StoryService:
         question: str,
         keywords: str,
     ) -> tuple[QueryAnswer, list[Chunk]]:
-        retrieved = retriever.retrieve(run.corpus_id, question, keywords)
+        # A memoir says "I", rarely the name: also search the question rephrased in the first person.
+        alt = to_first_person(question, run.person) if answerer.first_person_docs else None
+        alt = alt if alt != question else None
+        retrieved = retriever.retrieve(run.corpus_id, question, keywords, alt_question=alt)
         chunks = [r.chunk for r in retrieved]
         answer, exchange = answerer.answer(query_id, run.person, question, chunks)
         lexical = LexicalVerifier().verify(
@@ -239,6 +259,7 @@ class StoryService:
             "query",
             query_id=query_id,
             question=question,
+            first_person_question=alt,
             keyword_hints=keywords,
             retrieved=[
                 {
@@ -266,7 +287,8 @@ class StoryService:
     def _context(self, run: StoryRun, corpus: Corpus) -> tuple[HybridRetriever, QueryAnswerer]:
         embedder = self._embedders.by_id(corpus.embedder_id)
         retriever = HybridRetriever(self._index, embedder, self._config.retrieval)
-        return retriever, QueryAnswerer(self._chats.create(run.provider, run.model))
+        chat = self._chats.create(run.provider, run.model)
+        return retriever, QueryAnswerer(chat, first_person_docs=corpus.first_person_docs)
 
     def _log_start(self, run: StoryRun, corpus: Corpus) -> None:
         r = self._config.retrieval

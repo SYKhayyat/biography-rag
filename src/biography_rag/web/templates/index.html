@@ -12,6 +12,13 @@
         {% for e in opts.embedders %}<option value="{{ e }}" {% if e == opts.default_embedder %}selected{% endif %}>{{ e }}</option>{% endfor %}
       </select>
     </label>
+    <label>Written by
+      <select name="narration">
+        <option value="auto" selected>Detect per file</option>
+        <option value="self">The person (memoir, autobiography)</option>
+        <option value="others">Others (biographies)</option>
+      </select>
+    </label>
     <button type="submit">Upload &amp; index</button>
     <p class="error" id="upload-error" hidden></p>
   </form>

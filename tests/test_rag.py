@@ -7,7 +7,7 @@ import pytest
 from biography_rag.domain import Chunk, RunStatus, Verdict
 from biography_rag.rag.citations import cited_ids, split_sentences, strip_citations
 from biography_rag.rag.generation import QueryAnswerer, StoryWeaver, says_yes
-from biography_rag.rag.prompts import answer_messages
+from biography_rag.rag.prompts import answer_messages, evidence_check_messages
 from biography_rag.rag.queries import QUERIES
 from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig
 from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, _parse_judgement
@@ -151,6 +151,19 @@ class TestRetriever:
     def test_empty_corpus(self):
         assert HybridRetriever(MemoryChunkIndex(), HashingEmbedder(), RetrievalConfig()).retrieve("x", "q") == []
 
+    def test_alt_question_finds_first_person_text(self):
+        index = MemoryChunkIndex()
+        emb = HashingEmbedder()
+        own = Chunk("d01-0005", "d01", 5, "My wife Goldie and I married in Jerusalem.")
+        named = [Chunk(f"d01-000{c}", "d01", i, f"Ann Lee met the {c} committee.") for i, c in enumerate("abcdef")]
+        chunks = [own, *named]
+        index.add("c", chunks, emb.embed_documents([c.text for c in chunks]))
+        retriever = HybridRetriever(index, emb, RetrievalConfig(top_k=3))
+        question = "Who was the spouse of Ann Lee?"
+        assert retriever.retrieve("c", question)[0].chunk.chunk_id != own.chunk_id
+        hits = retriever.retrieve("c", question, alt_question="Who was my wife?")
+        assert hits[0].chunk.chunk_id == own.chunk_id and hits[0].keyword_rank == 1
+
 
 def answer_then(verdict: str):
     """A model that gives ``reply`` to the answer prompt and ``verdict`` to the evidence check."""
@@ -245,6 +258,23 @@ class TestGeneration:
         answer, ex = QueryAnswerer(chat, check_evidence=False).answer(1, "X", "Q?", [C1])
         assert answer.found and ex.check_messages == []
 
+    def test_first_person_snippets_and_quotes_are_marked(self):
+        msgs = answer_messages("X", "Q?", [C1, Chunk("d02-0000", "d02", 0, "I was born.")], {"d02"})
+        assert "[d02-0000] (first person)" in msgs[1]["content"]
+        assert "[d01-0000]\n" in msgs[1]["content"]
+        check = evidence_check_messages("X", "Q?", ["I was born there", "he left"], {"I was born there"})
+        assert '"I was born there" (first person)' in check[1]["content"]
+        assert '"he left"\n' not in check[1]["content"] and check[1]["content"].endswith('"he left"')
+
+    def test_first_person_quote_reaches_the_check_marked(self):
+        own = Chunk("d02-0000", "d02", 0, "When my mother was sick, I learned in Beis HaTalmud.")
+        reply = 'EVIDENCE: "I learned in Beis HaTalmud" [d02-0000]\nANSWER: X studied at Beis HaTalmud [d02-0000].'
+        seen = []
+        chat = ScriptedChat(lambda m: seen.append(m) or ("YES" if m[0]["content"].startswith("You check") else reply))
+        answer, _ = QueryAnswerer(chat, first_person_docs={"d02"}).answer(1, "X", "Where did X study?", [own])
+        assert answer.found
+        assert "(first person)" in seen[1][1]["content"]
+
     def test_prompt_forbids_outside_knowledge_and_names_person(self):
         system = answer_messages("Ada Lovelace", "Q?", [C1])[0]["content"]
         assert "Ada Lovelace" in system and "outside knowledge" in system and "NOT_IN_SOURCES" in system
@@ -335,3 +365,14 @@ class TestStoryService:
         app_parts["ingest"].create("Y", [bio_file])
         assert app_parts["story"].recover_interrupted() == 2
         assert app_parts["runs"].get(run.run_id).status is RunStatus.FAILED
+
+
+def test_weave_gives_uncited_sentences_their_paragraph_citation():
+    from biography_rag.domain import QueryAnswer
+
+    raw = "He was born in Boston. He flew a kite [d01-0001].\n\nHe died."
+    story, ex = StoryWeaver(ScriptedChat(lambda m: raw)).weave(
+        "X", [QueryAnswer(1, "Q", [], "a [d01-0001].", ["d01-0001"])], [C2]
+    )
+    assert story == "He was born in Boston [d01-0001]. He flew a kite [d01-0001].\n\nHe died."
+    assert ex.response == raw
