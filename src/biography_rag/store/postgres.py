@@ -56,6 +56,14 @@ create table if not exists run_events (
     event  jsonb not null,
     primary key (run_id, seq)
 );
+
+-- Row-level security on, no policies: Supabase's public REST API (anon and
+-- authenticated roles) sees nothing. The app connects as the table owner,
+-- which bypasses RLS, so it is unaffected.
+alter table corpora    enable row level security;
+alter table chunks     enable row level security;
+alter table runs       enable row level security;
+alter table run_events enable row level security;
 """
 
 
