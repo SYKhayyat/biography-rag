@@ -10,6 +10,10 @@ services:
     plan: free
     region: oregon
     healthCheckPath: /api/health
+
+    # Custom domain: bio.siachshai.online (add manually in Render dashboard → Settings → Custom Domains)
+    # Cloudflare DNS: CNAME bio → biography-rag.onrender.com (proxied)
+
     envVars:
       # Postgres with pgvector. Without it the app falls back to in-memory storage,
       # which the free plan's sleep/restart wipes.
