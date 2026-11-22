@@ -9,6 +9,29 @@ class Message(TypedDict):
     content: str
 
 
+class Reply(str):
+    """A completion's text, plus which model wrote it and whether it hit the token limit.
+    Plain ``str`` replies (test fakes) are fine too: read these through ``reply_model`` and
+    ``reply_truncated``."""
+
+    model: str | None
+    truncated: bool
+
+    def __new__(cls, text: str, *, model: str | None = None, truncated: bool = False) -> Reply:
+        obj = super().__new__(cls, text)
+        obj.model = model
+        obj.truncated = truncated
+        return obj
+
+
+def reply_model(reply: str, default: str | None = None) -> str | None:
+    return getattr(reply, "model", None) or default
+
+
+def reply_truncated(reply: str) -> bool:
+    return bool(getattr(reply, "truncated", False))
+
+
 class ChatModel(Protocol):
     @property
     def provider(self) -> str: ...

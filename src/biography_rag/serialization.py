@@ -62,12 +62,23 @@ def answer_to_dict(a: QueryAnswer) -> dict[str, Any]:
         "retrieved_ids": a.retrieved_ids,
         "answer": a.answer,
         "cited_ids": a.cited_ids,
+        "reason": a.reason,
+        "answered_by": a.answered_by,
+        "failed": a.failed,
         "display": a.display(),
     }
 
 
 def answer_from_dict(d: dict[str, Any]) -> QueryAnswer:
-    return QueryAnswer(d["query_id"], d["question"], list(d["retrieved_ids"]), d.get("answer"), list(d["cited_ids"]))
+    return QueryAnswer(
+        d["query_id"],
+        d["question"],
+        list(d["retrieved_ids"]),
+        d.get("answer"),
+        list(d["cited_ids"]),
+        reason=d.get("reason"),
+        answered_by=d.get("answered_by"),
+    )
 
 
 def check_to_dict(c: SentenceCheck) -> dict[str, Any]:

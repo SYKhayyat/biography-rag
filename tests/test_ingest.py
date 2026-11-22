@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from biography_rag.domain import CorpusStatus, SourceDocument
@@ -91,12 +93,46 @@ class TestIngestService:
         with pytest.raises(ValidationError, match="unknown embedder"):
             app_parts["ingest"].create("X", [bio_file], embedder="nope")
 
-    def test_empty_files_fail_cleanly(self, app_parts):
-        f = UploadedFile("blank.txt", b"   \n\n ")
+    def test_empty_files_are_rejected_without_a_corpus(self, app_parts):
+        with pytest.raises(ValidationError, match="empty"):
+            app_parts["ingest"].create("X", [UploadedFile("blank.txt", b"   \n\n ")])
+        assert app_parts["ingest"]._corpora.list() == []
+
+    def test_files_without_extractable_text_fail_cleanly(self, app_parts):
+        f = UploadedFile("blank.html", b"<html><script>var x = 1;</script></html>")
         corpus = app_parts["ingest"].create("X", [f])
         done = app_parts["ingest"].ingest(corpus.corpus_id, [f])
         assert done.status is CorpusStatus.FAILED
         assert "no text" in done.error
+
+    @pytest.mark.parametrize(
+        "name,data",
+        [
+            ("bin.txt", bytes(range(256)) * 12),  # random-looking bytes with NULs
+            ("pic.html", b"\x89PNG\r\n\x1a\n" + b"\x01\x02\x03\x04" * 200),
+            ("fake.pdf", b"just text, not a pdf"),
+        ],
+    )
+    def test_binary_files_are_rejected(self, app_parts, name, data):
+        ok = UploadedFile("bio.txt", b"Benjamin Franklin was born in Boston.")
+        with pytest.raises(ValidationError, match="not a text file"):
+            app_parts["ingest"].create("X", [ok, UploadedFile(name, data)])
+        assert app_parts["ingest"]._corpora.list() == []
+
+    def test_failed_corpora_are_purged_after_their_ttl(self, app_parts):
+        from datetime import timedelta
+
+        from biography_rag.domain import utcnow
+
+        ingest = app_parts["ingest"]
+        corpora = ingest._corpora
+        f = UploadedFile("blank.html", b"<html></html>")
+        old = ingest.ingest(ingest.create("Old", [f]).corpus_id, [f])
+        corpora.save(replace(old, created_at=utcnow() - timedelta(hours=30)))
+        recent = ingest.ingest(ingest.create("New", [f]).corpus_id, [f])
+        assert ingest.purge_failed(24) == 1
+        assert [c.corpus_id for c in corpora.list()] == [recent.corpus_id]
+        assert ingest.purge_failed(0) == 0
 
 
 def test_table_of_contents_link_lists_are_dropped():

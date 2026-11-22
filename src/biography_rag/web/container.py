@@ -54,7 +54,7 @@ def _stores(settings: Settings) -> tuple[CorpusRepository, ChunkIndex, RunReposi
         create_pool,
     )
 
-    pool = create_pool(settings.database_url)
+    pool = create_pool(settings.database_url, max_size=settings.db_pool_size)
     return PostgresCorpusRepository(pool), PostgresChunkIndex(pool), PostgresRunRepository(pool), pool
 
 
@@ -74,7 +74,7 @@ def build_container(
         corpora, index, runs = stores
     embedders = embedders or EmbedderRegistry.from_settings(settings)
     chats = chats or ChatModelFactory(settings)
-    logger = RunLogger([RepositorySink(runs), JsonlFileSink(settings.log_dir)])
+    logger = RunLogger([RepositorySink(runs, settings.max_events_per_run), JsonlFileSink(settings.log_dir)])
     retrieval = RetrievalConfig(
         top_k=settings.top_k,
         candidate_k=settings.candidate_k,
@@ -96,6 +96,8 @@ def build_container(
             concurrency=settings.query_concurrency,
             verify_with_llm=settings.verify_with_llm,
             max_compare_targets=settings.max_compare_targets,
+            judge_provider=settings.judge_provider,
+            judge_model=settings.judge_model,
         ),
     )
     return Container(

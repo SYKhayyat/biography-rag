@@ -10,6 +10,8 @@ answers were in the narrative chapters."""
 
 from __future__ import annotations
 
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from biography_rag.domain import Chunk, RetrievedChunk
@@ -25,6 +27,19 @@ class RetrievalConfig:
     min_similarity: float = 0.0
     rrf_k: int = 60
     max_number_density: float | None = 0.15  # skip index-like chunks above this; None = keep all
+    compound_extra_k: int = 3  # more chunks for a question that asks two things
+
+
+_COMPOUND = re.compile(r",\s+and\s+|;\s+|\?\s+(?=\w)", re.I)
+
+
+def compound_parts(question: str) -> list[str]:
+    """The clauses of a question that asks two things ("How many children did X have, and what
+    were their names?"), or [] for a simple question. Each half needs its own evidence, which
+    one retrieval for the whole sentence tends to miss."""
+    parts = [p.strip(" ?") for p in _COMPOUND.split(question)]
+    parts = [p for p in parts if len(p.split()) >= 2]
+    return parts if len(parts) >= 2 else []
 
 
 class HybridRetriever:
@@ -34,12 +49,20 @@ class HybridRetriever:
         self._config = config
 
     def retrieve(
-        self, corpus_id: str, question: str, keywords: str = "", alt_question: str | None = None
+        self,
+        corpus_id: str,
+        question: str,
+        keywords: str = "",
+        alt_question: str | None = None,
+        extra_phrasings: Sequence[str] = (),
     ) -> list[RetrievedChunk]:
         """``alt_question`` is a second phrasing searched alongside the first (both arms), e.g. the
-        question in the first person for a memoir, where the text says "I" and rarely the name."""
+        question in the first person for a memoir, where the text says "I" and rarely the name.
+        ``extra_phrasings`` are more (the clauses of a compound question); when given, the result
+        holds ``compound_extra_k`` more chunks, so each clause can bring its own evidence."""
         cfg = self._config
-        phrasings = [question] + ([alt_question] if alt_question and alt_question != question else [])
+        phrasings = list(dict.fromkeys(p for p in [question, alt_question, *extra_phrasings] if p))
+        top_k = cfg.top_k + (cfg.compound_extra_k if extra_phrasings else 0)
         dense_arms, sparse_arms = [], []
         for q in phrasings:
             dense = self._index.vector_search(corpus_id, self._embedder.embed_query(q), cfg.candidate_k)
@@ -70,7 +93,7 @@ class HybridRetriever:
                 chunks[cid] = chunk
                 krank[cid] = min(rank, krank.get(cid, rank))
 
-        best = sorted(fused, key=lambda cid: (-fused[cid], cid))[: cfg.top_k]
+        best = sorted(fused, key=lambda cid: (-fused[cid], cid))[:top_k]
         return [
             RetrievedChunk(chunks[cid], fused[cid], cosine.get(cid), vrank.get(cid), krank.get(cid)) for cid in best
         ]

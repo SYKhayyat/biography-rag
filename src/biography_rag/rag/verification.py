@@ -16,6 +16,7 @@ Two layers (the second decorates the first):
 from __future__ import annotations
 
 import json
+import logging
 import re
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -27,6 +28,8 @@ from biography_rag.llm.base import ChatModel, Message
 from biography_rag.rag.citations import cited_ids, split_sentences, strip_citations
 from biography_rag.rag.prompts import judge_messages
 from biography_rag.text import STOPWORDS, content_terms, words
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -102,10 +105,34 @@ def _parse_judgement(response: str) -> dict[int, tuple[bool, str]]:
     return out
 
 
+JUDGE_MAX_TOKENS = 2500
+
+
 class JudgedVerifier:
+    """Lets a second model audit every sentence the lexical check let through. It fails closed:
+    a sentence the judge gave no verdict on (garbage reply, error, skipped number) is flagged,
+    and the judge may never clear a sentence whose cited snippets lack one of its names or numbers."""
+
     def __init__(self, inner: LexicalVerifier, chat: ChatModel) -> None:
         self._inner = inner
         self._chat = chat
+
+    def _judge(self, messages: list[Message]) -> tuple[dict[int, tuple[bool, str]], str | None, str | None]:
+        """Up to two attempts. Returns (verdicts, last raw reply, error)."""
+        response: str | None = None
+        error: str | None = None
+        for _ in range(2):
+            try:
+                response = self._chat.complete(messages, max_tokens=JUDGE_MAX_TOKENS)
+            except Exception as exc:  # the judge failing must not fail the run; it flags instead
+                error = f"{type(exc).__name__}: {exc}"
+                log.warning("judge call failed: %s", error)
+                continue
+            verdicts = _parse_judgement(response)
+            if verdicts:
+                return verdicts, response, None
+            error = "unreadable reply"
+        return {}, response, error
 
     def verify(self, text: str, chunks: Mapping[str, Chunk], allowed_ids: AbstractSet[str]) -> VerificationResult:
         base = self._inner.verify(text, chunks, allowed_ids).report
@@ -113,26 +140,48 @@ class JudgedVerifier:
             return VerificationResult(base, [], None)
         used = sorted({i for c in base.checks for i in c.cited_ids if i in chunks})
         messages = judge_messages([(c.sentence, c.cited_ids) for c in base.checks], [chunks[i] for i in used])
-        response = self._chat.complete(messages, max_tokens=4000)
-        verdicts = _parse_judgement(response)
+        verdicts, response, error = self._judge(messages)
 
         checks: list[SentenceCheck] = []
         for n, check in enumerate(base.checks, 1):
-            if n not in verdicts or check.verdict in (Verdict.UNCITED, Verdict.BAD_CITATION):
+            if check.verdict in (Verdict.UNCITED, Verdict.BAD_CITATION):
                 checks.append(check)
+                continue
+            if n not in verdicts:
+                why = f"judge gave no verdict ({error})" if error else "judge gave no verdict"
+                note = "; ".join(filter(None, [why, check.note]))
+                checks.append(replace(check, verdict=Verdict.JUDGE_FLAGGED, note=note))
                 continue
             supported, reason = verdicts[n]
             if not supported:
                 note = "; ".join(filter(None, [f"judge: {reason or 'not supported'}", check.note]))
                 checks.append(replace(check, verdict=Verdict.JUDGE_FLAGGED, note=note))
-            elif check.verdict is Verdict.WEAK:
+            elif check.verdict is Verdict.WEAK and not check.missing_terms:
                 checks.append(
                     replace(check, verdict=Verdict.SUPPORTED, note=f"judge: supported (lexical: {check.note})")
                 )
-            else:
+            else:  # SUPPORTED stays; WEAK with a missing name or number stays WEAK
                 checks.append(check)
         return VerificationResult(VerificationReport(checks), messages, response)
 
 
 def merge_chunks(groups: Sequence[Sequence[Chunk]]) -> dict[str, Chunk]:
     return {c.chunk_id: c for group in groups for c in group}
+
+
+_PARAGRAPH = re.compile(r"\n\s*\n|\n(?=#)")  # the same split split_sentences uses
+
+
+def published_text(text: str, report: VerificationReport) -> str:
+    """``text`` without its flagged sentences: what readers see. Paragraphs left empty, and
+    headings, are dropped. ``report`` must be the verification of this very ``text``."""
+    checks = report.checks
+    if len(checks) != len(split_sentences(text)):  # should not happen; never publish unchecked text
+        return " ".join(c.sentence for c in checks if not c.flagged)
+    flags = iter(c.flagged for c in checks)
+    paragraphs = []
+    for paragraph in _PARAGRAPH.split(text):
+        kept = [s for s in split_sentences(paragraph) if not next(flags)]
+        if kept:
+            paragraphs.append(" ".join(kept))
+    return "\n\n".join(paragraphs)

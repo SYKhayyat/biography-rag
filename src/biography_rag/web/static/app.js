@@ -203,6 +203,8 @@ function statusLine(r) {
   const parts = [`Done in ${elapsed(r)}`];
   if (r.kind === "story" && r.answers.length) {
     parts.push(`${r.answers.filter((a) => a.answer).length} of ${r.answers.length} answered`);
+    const failed = r.answers.filter((a) => a.failed).length;
+    if (failed) parts.push(`<span class="error">${plural(failed, "question")} failed</span>`);
   }
   const v = r.verification;
   if (v) {
@@ -218,7 +220,17 @@ function columnBody(r) {
     return r.kind === "story" ? `<progress max="${r.total || 1}" value="${r.progress}"></progress>` : `<span class="spinner"></span>`;
   }
   if (r.status === "failed") return `<p class="error">${esc(r.error)}</p>`;
-  return `<div class="story">${paragraphs(r.story || "Nothing relevant was found in the sources.")}</div>`;
+  return `<div class="story">${paragraphs(r.story || "Nothing relevant was found in the sources.")}</div>${notCovered(r)}`;
+}
+
+/** The story's topics that didn't make it in, each with why: absent from the sources, or a failure. */
+function notCovered(r) {
+  if (r.kind !== "story") return "";
+  const missing = r.answers.filter((a) => !a.answer);
+  if (!missing.length) return "";
+  return `<details class="not-covered small"><summary>${plural(missing.length, "topic")} not covered</summary><ul>
+    ${missing.map((a) => `<li${a.failed ? ` class="error"` : ""}>${esc(a.question)} <span class="muted">${esc(a.display)}</span></li>`).join("")}
+    </ul></details>`;
 }
 
 function columnHtml(r, { selected, alone }) {
@@ -257,7 +269,9 @@ function detailHtml(r, alone) {
     html += `<h3>${r.kind === "story" ? "Answers" : "Answer"}</h3>
       <div class="scroll"><table><thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Passages found</th></tr></thead><tbody>
       ${r.answers.map((a) => `<tr class="${a.answer ? "" : "absent"}"><td>${a.query_id || "–"}</td><td>${esc(a.question)}</td>
-        <td>${withCitations(a.display)}</td><td>${chips(a.retrieved_ids)}</td></tr>`).join("")}
+        <td>${withCitations(a.display)}${a.answered_by && a.answered_by !== r.model
+          ? ` <span class="muted small" title="the chosen model was unavailable">(answered by ${esc(a.answered_by)})</span>` : ""}</td>
+        <td>${chips(a.retrieved_ids)}</td></tr>`).join("")}
       </tbody></table></div>`;
   }
   return html + `</div>`;
@@ -271,7 +285,7 @@ function matrixHtml(runs) {
   const rows = questions.map(([id, q]) => `<tr><td>${id}</td><td>${esc(q)}</td>${runs.map((r) => {
     const a = r.answers.find((x) => x.query_id === id);
     if (!a) return `<td class="muted">…</td>`;
-    if (!a.answer) return `<td class="muted" title="not in the sources">–</td>`;
+    if (!a.answer) return a.failed ? `<td class="error" title="${esc(a.display)}">!</td>` : `<td class="muted" title="${esc(a.display)}">–</td>`;
     return `<td title="${esc(a.answer)}">✓ ${chips(a.cited_ids)}</td>`;
   }).join("")}</tr>`).join("");
   return head + `<tbody>${rows}</tbody>`;

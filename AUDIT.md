@@ -39,6 +39,26 @@ whether it was actually exercised.
 | 16 | Low | `/api/corpora` is public to anyone past the site password and lists every corpus | E, confirmed |
 | 17 | Low | Over-long and empty questions are rejected; a 5000-char person name is rejected (correct), but errors are inconsistent in shape | E |
 
+## Fix status (2026-11-22)
+
+| # | Status | What changed |
+|---|---|---|
+| 1 | Fixed | `client_ip` reads `X-Forwarded-For` from the right (the last hop, or the one before a Cloudflare edge). The header is trusted only on Render (`TRUST_FORWARDED_FOR`). uvicorn runs with `proxy_headers=False`. |
+| 2 | Fixed | Flagged sentences are dropped from the published story (`published_text`). They stay listed in Details with their reason. If an ask's whole answer is flagged, the page says so. |
+| 3 | Mitigated | A NO from the sufficiency check is retried once, and both verdicts are logged. Topics left out of a story are listed under the story with the reason. |
+| 4 | Mitigated | Not tied directly. Every published sentence now has to pass the fail-closed judge (10), or it is dropped (2). |
+| 5 | Fixed | `QueryAnswer.reason` records one of nothing_retrieved, not_in_sources, no_evidence, evidence_insufficient, empty_output, truncated or error. Failures show as "No answer: …", not "Not in the sources". |
+| 6 | Fixed | The question goes inside `<question>` tags. Any tags the user typed are stripped, and both prompts say the tagged text is data, not instructions. |
+| 7 | Mitigated | A compound question is split into its clauses. Each clause gets its own retrieval phrasing, plus `compound_extra_k` more chunks. |
+| 8 | Open | Citation padding is not addressed. |
+| 9 | Fixed | Binary uploads are rejected (NUL or control bytes, or a fake PDF). An all-empty upload is rejected before any corpus row is created. |
+| 10 | Fixed | The judge fails closed: no verdict means flagged. It gets two attempts with a 2500-token budget. It can't clear a WEAK sentence that has a missing name or number. `JUDGE_PROVIDER`/`JUDGE_MODEL` can name a different model; empty means the author's model. |
+| 11 | Fixed | Errors are caught per question and recorded with reason "error". The run finishes with the other answers. |
+| 12 | Fixed | Each answer records `answered_by`, the model that actually replied, and Details shows it when it differs from the requested model. |
+| 13 | Partly fixed | Failed corpora are deleted after 24 h (`FAILED_CORPUS_TTL_HOURS`, checked hourly). Stored events are capped per run (`MAX_EVENTS_PER_RUN=400`, essential events always kept). There is still no chunk quota. |
+| 14 | Mitigated | The pool size is `DB_POOL_SIZE` (default 12). No load test yet. |
+| 15–17 | Won't fix | Accepted limits. `/api/corpora` stays open behind the site password. |
+
 ## Findings from the end-to-end run
 
 ### 1. Rate limit bypass via `X-Forwarded-For` (High, confirmed)

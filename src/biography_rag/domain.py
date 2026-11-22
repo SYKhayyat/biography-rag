@@ -84,20 +84,56 @@ class QueryTemplate:
 NOT_IN_SOURCES = "Not in the sources."
 
 
+class AnswerReason(StrEnum):
+    """Why a question got no answer. Only the first four mean the sources lack it; the rest
+    are failures that must not be shown as "not in the sources"."""
+
+    NOTHING_RETRIEVED = "nothing_retrieved"
+    NOT_IN_SOURCES = "not_in_sources"  # the model said so
+    NO_EVIDENCE = "no_evidence"  # no quote survived the verbatim check
+    EVIDENCE_INSUFFICIENT = "evidence_insufficient"  # the quotes don't answer the question
+    EMPTY_OUTPUT = "empty_output"
+    TRUNCATED = "truncated"  # the reply hit the token limit
+    ERROR = "error"  # the provider call (or retrieval) failed
+
+
+REASON_TEXT: dict[str, str] = {
+    AnswerReason.NOTHING_RETRIEVED: "nothing relevant was retrieved",
+    AnswerReason.NOT_IN_SOURCES: "the model found no answer in the passages",
+    AnswerReason.NO_EVIDENCE: "the model's quotes were not found in the passages",
+    AnswerReason.EVIDENCE_INSUFFICIENT: "the quoted passages do not answer the question",
+    AnswerReason.EMPTY_OUTPUT: "the model returned an empty reply",
+    AnswerReason.TRUNCATED: "the model's reply was cut off at the length limit",
+    AnswerReason.ERROR: "the model call failed",
+}
+_FAILURES = {AnswerReason.EMPTY_OUTPUT, AnswerReason.TRUNCATED, AnswerReason.ERROR}
+
+
 @dataclass(frozen=True)
 class QueryAnswer:
     query_id: int
     question: str
     retrieved_ids: list[str]
-    answer: str | None  # None means "not in the sources"
+    answer: str | None  # None means no answer; ``reason`` says why
     cited_ids: list[str]
+    reason: str | None = None  # an AnswerReason when ``answer`` is None
+    answered_by: str | None = None  # the model that actually replied (a fallback may stand in)
 
     @property
     def found(self) -> bool:
         return self.answer is not None
 
+    @property
+    def failed(self) -> bool:
+        """No answer because something broke, not because the sources lack one."""
+        return self.answer is None and self.reason in _FAILURES
+
     def display(self) -> str:
-        return self.answer if self.answer is not None else NOT_IN_SOURCES
+        if self.answer is not None:
+            return self.answer
+        if self.failed:
+            return f"No answer: {REASON_TEXT[self.reason]}."  # type: ignore[index]
+        return NOT_IN_SOURCES
 
 
 class Verdict(StrEnum):

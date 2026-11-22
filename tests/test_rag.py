@@ -11,6 +11,7 @@ from biography_rag.rag.prompts import answer_messages, evidence_check_messages
 from biography_rag.rag.queries import QUERIES
 from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig
 from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, _parse_judgement
+from biography_rag.services import UNVERIFIED_ANSWER
 from biography_rag.store.memory import MemoryChunkIndex
 from tests.fakes import HashingEmbedder, ScriptedChat
 
@@ -103,10 +104,36 @@ class TestJudgedVerifier:
         assert r.checks[0].verdict is Verdict.SUPPORTED
         assert r.checks[1].verdict is Verdict.UNCITED
 
-    def test_unparseable_judge_keeps_lexical_result(self):
+    def test_unparseable_judge_fails_closed(self):
         r = self.judge("sorry, I cannot").verify("Born in Boston [d01-0000].", CHUNKS, set(CHUNKS))
-        assert r.report.checks[0].verdict is Verdict.SUPPORTED
+        assert r.report.checks[0].verdict is Verdict.JUDGE_FLAGGED
+        assert "no verdict" in r.report.checks[0].note
         assert r.judge_response == "sorry, I cannot"
+
+    def test_judge_error_is_retried_then_fails_closed(self):
+        calls = []
+
+        def boom(_m):
+            calls.append(1)
+            raise RuntimeError("judge down")
+
+        r = JudgedVerifier(LexicalVerifier(), ScriptedChat(boom)).verify(
+            "Born in Boston [d01-0000].", CHUNKS, set(CHUNKS)
+        )
+        assert len(calls) == 2
+        assert r.report.checks[0].verdict is Verdict.JUDGE_FLAGGED and "judge down" in r.report.checks[0].note
+
+    def test_judge_retry_can_succeed(self):
+        replies = iter(["garbage", '[{"i":1,"supported":true}]'])
+        r = JudgedVerifier(LexicalVerifier(), ScriptedChat(lambda m: next(replies))).verify(
+            "Born in Boston [d01-0000].", CHUNKS, set(CHUNKS)
+        )
+        assert r.report.checks[0].verdict is Verdict.SUPPORTED
+
+    def test_judge_cannot_clear_a_missing_name_or_number(self):
+        reply = '[{"i":1,"supported":true}]'
+        r = self.judge(reply).verify("He was born in Boston on January 17, 1706 [d01-0000].", CHUNKS, set(CHUNKS))
+        assert r.report.checks[0].verdict is Verdict.WEAK
 
     def test_parse_judgement_tolerates_prose_around_json(self):
         assert _parse_judgement('Here: [{"i": 2, "supported": false, "reason": "x"}] done') == {2: (False, "x")}
@@ -333,14 +360,16 @@ class TestStoryService:
             "ANSWER: He was born on January 17, 1706 in Boston [d01-0000]. He signed the Constitution."
         )
         run = app_parts["story"].ask(corpus.corpus_id, "When was he born?")
-        # The gate drops the uncited sentence; the verifier flags the invented day.
-        assert run.story == "He was born on January 17, 1706 in Boston [d01-0000]."
+        # The gate drops the uncited sentence; the verifier flags the invented day, and the
+        # flagged sentence is kept out of what readers see.
         assert [c.verdict for c in run.verification.checks] == [Verdict.JUDGE_FLAGGED]
+        assert run.verification.checks[0].sentence == "He was born on January 17, 1706 in Boston [d01-0000]."
+        assert "January" not in run.story and run.story == UNVERIFIED_ANSWER
         query = next(e for e in app_parts["runs"].events(run.run_id) if e["type"] == "query")
         assert "dropped 1 uncited" in query["gate"] and "Constitution" in query["response"]
         assert query["evidence_check"]["response"] == "YES" and query["evidence_check"]["prompt"]
 
-    def test_run_failure_is_recorded(self, app_parts, bio_file, chat):
+    def test_provider_errors_are_recorded_per_question(self, app_parts, bio_file, chat):
         corpus = self.ready(app_parts, bio_file)
 
         def boom(_m):
@@ -349,8 +378,11 @@ class TestStoryService:
         chat.responder = boom
         svc = app_parts["story"]
         run = svc.execute(svc.start(corpus.corpus_id).run_id)
-        assert run.status is RunStatus.FAILED and "provider down" in run.error
-        assert app_parts["runs"].events(run.run_id)[-2]["type"] == "run_failed"
+        # One question failing must not sink the other nineteen: each is marked, the run finishes.
+        assert run.status is RunStatus.DONE
+        assert run.answers and all(a.reason == "error" and a.failed for a in run.answers)
+        queries = [e for e in app_parts["runs"].events(run.run_id) if e["type"] == "query"]
+        assert queries and all("provider down" in e["error"] for e in queries)
 
     def test_cannot_run_on_unready_corpus(self, app_parts, bio_file):
         from biography_rag.services import ValidationError

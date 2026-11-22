@@ -138,6 +138,9 @@ th, td { text-align: left; vertical-align: top; padding: .45rem .5rem; border-bo
 .chip.quiet { color: var(--muted); }
 tr.flagged td { background: color-mix(in srgb, var(--bad) 10%, transparent); }
 tr.absent td { color: var(--muted); }
+.not-covered { margin-top: 1rem; }
+.not-covered ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+.not-covered li { margin: .2rem 0; }
 .story { font-size: 1.1rem; max-width: 44rem; }
 .story p { margin: 0 0 1em; }
 .summary { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin-bottom: .8rem; font-family: var(--sans); font-size: .9rem; }

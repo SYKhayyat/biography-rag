@@ -57,6 +57,23 @@ LOADERS: dict[str, Loader] = {
 }
 
 
+_CONTROL = frozenset(range(32)) - {9, 10, 12, 13}  # control bytes other than tab, newline, form feed, CR
+
+
+def looks_binary(filename: str, data: bytes, sample: int = 8192) -> bool:
+    """True for a file that is not what its extension claims: a PDF without the PDF header, or a
+    text/HTML file with NUL bytes or many control bytes (an image or archive renamed .txt).
+    Indexing those wastes embedding calls and fills retrieval with noise."""
+    if not data:
+        return False
+    head = data[:sample]
+    if PurePath(filename).suffix.lower() == ".pdf":
+        return b"%PDF-" not in head[:1024]
+    if b"\x00" in head:
+        return True
+    return sum(b in _CONTROL for b in head) / len(head) > 0.02
+
+
 def supported_extensions() -> list[str]:
     return sorted(LOADERS)
 

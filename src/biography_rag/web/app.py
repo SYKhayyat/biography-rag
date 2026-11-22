@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hmac
 import json
+import logging
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -20,8 +22,9 @@ from biography_rag.serialization import corpus_to_dict, run_to_dict
 from biography_rag.services import NotFound, Target, UploadedFile, ValidationError, result_key
 from biography_rag.web.auth import SitePasswordMiddleware
 from biography_rag.web.container import Container
-from biography_rag.web.ratelimit import SlidingWindowLimiter
+from biography_rag.web.ratelimit import SlidingWindowLimiter, client_ip
 
+log = logging.getLogger(__name__)
 HERE = Path(__file__).parent
 
 
@@ -48,7 +51,21 @@ def create_app(container: Container) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         container.story.recover_interrupted()
+        stop = threading.Event()
+
+        def purge() -> None:  # failed uploads are deleted once they are a day old
+            while True:
+                try:
+                    container.ingest.purge_failed(settings.failed_corpus_ttl_hours)
+                except Exception:
+                    log.exception("purging failed corpora")
+                if stop.wait(3600):
+                    return
+
+        if settings.failed_corpus_ttl_hours > 0:
+            threading.Thread(target=purge, name="purge-failed", daemon=True).start()
         yield
+        stop.set()
         container.close()
 
     app = FastAPI(title="Biography RAG", lifespan=lifespan)
@@ -65,7 +82,11 @@ def create_app(container: Container) -> FastAPI:
         return JSONResponse({"detail": f"not found: {exc}"}, status_code=404)
 
     def charge(request: Request, cost: int = 1) -> None:
-        client = request.client.host if request.client else "unknown"
+        client = client_ip(
+            request.headers.get("x-forwarded-for"),
+            request.client.host if request.client else None,
+            trust_forwarded_for=settings.trust_forwarded_for,
+        )
         if not limiter.allow(client, cost):
             raise HTTPException(
                 429, "rate limit reached, try again later", headers={"Retry-After": str(limiter.retry_after(client))}
@@ -305,7 +326,6 @@ def create_app(container: Container) -> FastAPI:
 
 
 def main() -> None:  # pragma: no cover - process entry point
-    import logging
     import os
 
     import uvicorn
@@ -319,7 +339,6 @@ def main() -> None:  # pragma: no cover - process entry point
         create_app(build_container(settings)),
         host="0.0.0.0",
         port=int(os.environ.get("PORT", "8000")),
-        proxy_headers=True,
-        forwarded_allow_ips="*",
+        proxy_headers=False,  # the client address is read in `charge`, trusting only proxy hops
         workers=1,  # background jobs live in this process
     )

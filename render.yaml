@@ -51,3 +51,11 @@ services:
         value: "20"
       - key: QUERY_CONCURRENCY
         value: "4"
+      # The model that audits each story sentence. Empty = the model that wrote it.
+      - key: JUDGE_PROVIDER
+        sync: false
+      - key: JUDGE_MODEL
+        sync: false
+      # Postgres connections (job workers x query threads share them).
+      - key: DB_POOL_SIZE
+        value: "12"

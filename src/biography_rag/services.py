@@ -10,10 +10,12 @@ import uuid
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
+from datetime import timedelta
 from pathlib import PurePath
 
 from biography_rag.domain import (
     NARRATIONS,
+    AnswerReason,
     Chunk,
     Corpus,
     CorpusStatus,
@@ -26,18 +28,21 @@ from biography_rag.domain import (
 )
 from biography_rag.embeddings.registry import EmbedderRegistry
 from biography_rag.ingest.chunker import Chunker
-from biography_rag.ingest.loaders import LOADERS, extract_text
-from biography_rag.llm.base import ChatModelSource
+from biography_rag.ingest.loaders import LOADERS, extract_text, looks_binary
+from biography_rag.llm.base import ChatModelSource, reply_model
 from biography_rag.rag.generation import QueryAnswerer, StoryWeaver
 from biography_rag.rag.queries import QUERIES
-from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig
-from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, Verifier
+from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig, compound_parts
+from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, Verifier, published_text
 from biography_rag.runlog import RunLogger
 from biography_rag.serialization import answer_to_dict, report_to_dict
 from biography_rag.store.base import ChunkIndex, CorpusRepository, RunRepository
 from biography_rag.text import is_first_person, to_first_person
 
 log = logging.getLogger(__name__)
+
+
+UNVERIFIED_ANSWER = "An answer was written, but none of it could be verified against the sources (see Details)."
 
 
 class ValidationError(ValueError):
@@ -95,6 +100,11 @@ class IngestService:
         bad = [f.name for f in files if PurePath(f.name).suffix.lower() not in LOADERS]
         if bad:
             raise ValidationError(f"unsupported file type: {', '.join(bad[:5])} (use {', '.join(sorted(LOADERS))})")
+        binary = [f.name for f in files if looks_binary(f.name, f.data)]
+        if binary:
+            raise ValidationError(f"not a text file: {', '.join(binary[:5])}")
+        if not any(f.data.strip() for f in files):
+            raise ValidationError("the uploaded files are empty")
         try:
             chosen = self._embedders.by_name(embedder)
         except (ValueError, RuntimeError) as exc:
@@ -149,6 +159,20 @@ class IngestService:
         self._index.delete_corpus(corpus_id)
         self._corpora.delete(corpus_id)
 
+    def purge_failed(self, older_than_hours: float) -> int:
+        """Delete failed uploads older than the given age (0 = keep them). They hold no chunks and
+        no runs, only a row in the public list."""
+        if older_than_hours <= 0:
+            return 0
+        cutoff = utcnow() - timedelta(hours=older_than_hours)
+        stale = [c for c in self._corpora.list() if c.status is CorpusStatus.FAILED and c.created_at < cutoff]
+        for corpus in stale:
+            self._index.delete_corpus(corpus.corpus_id)
+            self._corpora.delete(corpus.corpus_id)
+        if stale:
+            log.info("deleted %d failed corpora older than %sh", len(stale), older_than_hours)
+        return len(stale)
+
 
 @dataclass(frozen=True)
 class StoryConfig:
@@ -156,6 +180,8 @@ class StoryConfig:
     concurrency: int = 4
     verify_with_llm: bool = True
     max_compare_targets: int = 6
+    judge_provider: str = ""  # empty: the judge is the model that wrote the text
+    judge_model: str = ""
 
 
 @dataclass(frozen=True)
@@ -235,13 +261,41 @@ class StoryService:
             raise ValidationError("ask a question of 1-500 characters")
         return question
 
+    def _judge_target(self, provider: str, model: str) -> tuple[str, str | None]:
+        cfg = self._config
+        if cfg.judge_provider:
+            return cfg.judge_provider, cfg.judge_model or None
+        return provider, model
+
     def _verifier(self, provider: str, model: str) -> Verifier:
         lexical = LexicalVerifier()
         if not self._config.verify_with_llm:
             return lexical
-        return JudgedVerifier(lexical, self._chats.create(provider, model))
+        return JudgedVerifier(lexical, self._chats.create(*self._judge_target(provider, model)))
 
     def _answer_one(
+        self,
+        run: StoryRun,
+        retriever: HybridRetriever,
+        answerer: QueryAnswerer,
+        query_id: int,
+        question: str,
+        keywords: str,
+    ) -> tuple[QueryAnswer, list[Chunk]]:
+        """One question, end to end. A failure (provider error, timeout) becomes an unanswered
+        topic with reason "error", so one bad call cannot sink a 20-question story."""
+        try:
+            return self._answer_one_inner(run, retriever, answerer, query_id, question, keywords)
+        except Exception as exc:
+            log.exception("run %s: query %s failed", run.run_id, query_id)
+            error = f"{type(exc).__name__}: {exc}"[:500]
+            answer = QueryAnswer(query_id, question, [], None, [], reason=AnswerReason.ERROR.value)
+            self._log.log(
+                run.run_id, "query", query_id=query_id, question=question, error=error, answer=answer_to_dict(answer)
+            )
+            return answer, []
+
+    def _answer_one_inner(
         self,
         run: StoryRun,
         retriever: HybridRetriever,
@@ -253,7 +307,9 @@ class StoryService:
         # A memoir says "I", rarely the name: also search the question rephrased in the first person.
         alt = to_first_person(question, run.person) if answerer.first_person_docs else None
         alt = alt if alt != question else None
-        retrieved = retriever.retrieve(run.corpus_id, question, keywords, alt_question=alt)
+        # "X, and Y?" asks two things: search each half too, and keep a few more chunks.
+        parts = compound_parts(question)
+        retrieved = retriever.retrieve(run.corpus_id, question, keywords, alt_question=alt, extra_phrasings=parts)
         chunks = [r.chunk for r in retrieved]
         answer, exchange = answerer.answer(query_id, run.person, question, chunks)
         lexical = LexicalVerifier().verify(
@@ -265,6 +321,7 @@ class StoryService:
             query_id=query_id,
             question=question,
             first_person_question=alt,
+            compound_parts=parts or None,
             keyword_hints=keywords,
             retrieved=[
                 {
@@ -316,6 +373,9 @@ class StoryService:
                 "max_number_density": r.max_number_density,
             },
             verify_with_llm=self._config.verify_with_llm,
+            judge=dict(zip(("provider", "model"), self._judge_target(run.provider, run.model), strict=True))
+            if self._config.verify_with_llm
+            else None,
         )
 
     # --- starting runs -------------------------------------------------------
@@ -411,6 +471,7 @@ class StoryService:
             report=report_to_dict(result.report),
             judge_prompt=result.judge_messages,
             judge_response=result.judge_response,
+            judge_model=reply_model(result.judge_response) if result.judge_response else None,
         )
 
     def _execute_story(self, run: StoryRun, corpus: Corpus) -> None:
@@ -436,11 +497,18 @@ class StoryService:
         story, exchange = StoryWeaver(self._chats.create(run.provider, run.model)).weave(
             run.person, run.answers, [retrieved[c] for c in cited]
         )
-        self._log.log(run.run_id, "weave", prompt=exchange.messages, response=exchange.response)
+        self._log.log(
+            run.run_id,
+            "weave",
+            prompt=exchange.messages,
+            response=exchange.response,
+            model=reply_model(exchange.response) if exchange.response else None,
+        )
 
         result = self._verifier(run.provider, run.model).verify(story, retrieved, set(retrieved))
         self._log_verification(run, result)
-        run.story, run.verification = story, result.report
+        # Readers get only the sentences that passed; Details lists the rest, with the reason.
+        run.story, run.verification = published_text(story, result.report), result.report
 
     def _execute_ask(self, run: StoryRun, corpus: Corpus) -> None:
         retriever, answerer = self._context(run, corpus)
@@ -448,7 +516,11 @@ class StoryService:
         chunk_map = {c.chunk_id: c for c in chunks}
         result = self._verifier(run.provider, run.model).verify(answer.answer or "", chunk_map, set(chunk_map))
         self._log_verification(run, result)
-        run.answers, run.story, run.verification, run.progress = [answer], answer.display(), result.report, 1
+        if answer.found:
+            story = published_text(answer.answer or "", result.report) or UNVERIFIED_ANSWER
+        else:
+            story = answer.display()
+        run.answers, run.story, run.verification, run.progress = [answer], story, result.report, 1
 
     def ask(self, corpus_id: str, question: str, provider: str | None = None, model: str | None = None) -> StoryRun:
         """Ask one question and wait for the answer."""

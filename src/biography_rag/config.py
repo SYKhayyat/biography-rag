@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +47,9 @@ class Settings(BaseSettings):
     max_number_density: float | None = 0.15  # skip back-of-book index chunks (numbers per word)
     query_concurrency: int = 4
     verify_with_llm: bool = True
+    # The judge that audits the woven story. Empty -> the model that wrote it.
+    judge_provider: str = ""
+    judge_model: str = ""
 
     # --- app ---------------------------------------------------------------
     log_dir: str = "logs"
@@ -55,6 +60,12 @@ class Settings(BaseSettings):
     site_password: str = ""  # HTTP Basic password for the whole site; empty = open
     job_workers: int = 6  # concurrent background runs (a comparison starts one per model)
     max_compare_targets: int = 6
+    db_pool_size: int = 12  # Postgres connections; job workers x query threads share them
+    failed_corpus_ttl_hours: float = 24.0  # failed uploads are deleted after this (0 = keep)
+    max_events_per_run: int = 400  # run-log rows stored per run; later ones are dropped
+    # Read the client address from X-Forwarded-For (proxy hops only). On by default on Render,
+    # which sets RENDER=true; off elsewhere, where the header is whatever the client sent.
+    trust_forwarded_for: bool = Field(default_factory=lambda: bool(os.environ.get("RENDER")))
 
 
 @lru_cache

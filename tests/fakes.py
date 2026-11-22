@@ -103,6 +103,11 @@ class FakeChatSource:
 _SNIPPET = re.compile(r"\[(d\d{2}-\d{4})\]\n(.+?)(?=\n\n\[d\d{2}-\d{4}\]\n|\Z)", re.S)
 
 
+def question_of(user: str) -> str:
+    first = user.split("\n", 1)[0].removeprefix("Question: ")
+    return first.removeprefix("<question>").removesuffix("</question>")
+
+
 def extractive_responder(messages: list[Message]) -> str:
     """Behaves like an obedient model: quotes the first sentence of the best snippet that
     shares a word with the question, cites it, or says NOT_IN_SOURCES."""
@@ -111,7 +116,7 @@ def extractive_responder(messages: list[Message]) -> str:
         n = len(re.findall(r"^\d+\. ", user, re.M))
         return "[" + ",".join(f'{{"i": {i}, "supported": true}}' for i in range(1, n + 1)) + "]"
     if system.startswith("You check whether quoted evidence"):
-        question = user.split("\n", 1)[0].removeprefix("Question: ")
+        question = question_of(user)
         quotes = user.split("Quotes:", 1)[1]
         terms = set(content_terms(question)) - {"person", "franklin", "benjamin"}
         return "YES" if terms & set(content_terms(quotes)) else "NO"
@@ -119,7 +124,7 @@ def extractive_responder(messages: list[Message]) -> str:
         findings = user.split("The snippets cited above")[0]
         lines = [ln for ln in findings.splitlines() if "[d" in ln]
         return "\n\n".join(lines)
-    question = user.split("\n", 1)[0].removeprefix("Question: ")
+    question = question_of(user)
     q_terms = set(content_terms(question)) - {"person", "franklin", "benjamin"}
     for cid, text in _SNIPPET.findall(user):
         if q_terms & set(content_terms(text)):

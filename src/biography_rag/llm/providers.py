@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from biography_rag.config import Settings
-from biography_rag.llm.base import ChatModel, Message
+from biography_rag.llm.base import ChatModel, Message, Reply
 
 log = logging.getLogger(__name__)
 
@@ -201,12 +201,17 @@ class OpenAICompatibleChat:
                 stream=True,
                 extra_body=dict(self._option.extra_body) if self._option.extra_body else None,
             )
-            parts = [
-                chunk.choices[0].delta.content
-                for chunk in stream
-                if chunk.choices and getattr(chunk.choices[0].delta, "content", None)
-            ]
-        return strip_reasoning("".join(parts))
+            parts: list[str] = []
+            finish: str | None = None
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                choice = chunk.choices[0]
+                content = getattr(choice.delta, "content", None)
+                if content:
+                    parts.append(content)
+                finish = getattr(choice, "finish_reason", None) or finish
+        return Reply(strip_reasoning("".join(parts)), model=self._option.id, truncated=finish == "length")
 
 
 @dataclass
@@ -237,7 +242,8 @@ class FallbackChat:
             if benched and not is_last:
                 continue
             try:
-                return chat.complete(messages, max_tokens=max_tokens)
+                reply = chat.complete(messages, max_tokens=max_tokens)
+                return reply if isinstance(reply, Reply) else Reply(reply, model=chat.model)
             except Exception as exc:  # any provider failure means "try the next model"
                 last_error = exc
                 if not is_last:
