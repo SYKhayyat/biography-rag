@@ -31,6 +31,7 @@ from biography_rag.ingest.chunker import Chunker
 from biography_rag.ingest.loaders import LOADERS, extract_text, looks_binary
 from biography_rag.llm.base import ChatModelSource, reply_model
 from biography_rag.rag.generation import QueryAnswerer, StoryWeaver
+from biography_rag.rag.grounding import focus_text
 from biography_rag.rag.queries import QUERIES
 from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig, compound_parts
 from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, Verifier, published_text
@@ -80,8 +81,10 @@ class IngestService:
         embedders: EmbedderRegistry,
         chunker: Chunker,
         embed_batch: int = 256,
+        max_total_chunks: int = 0,
     ) -> None:
         self._corpora = corpora
+        self._max_chunks = max_total_chunks  # across all corpora; 0 = no quota
         self._index = index
         self._embedders = embedders
         self._chunker = chunker
@@ -135,6 +138,7 @@ class IngestService:
                         first_person.append(doc_id)
             if not chunks:
                 raise ValidationError("no text could be extracted from the uploaded files")
+            self._check_quota(corpus_id, len(chunks))  # before embedding, so a refusal costs nothing
             embedder = self._embedders.by_id(corpus.embedder_id)
             for start in range(0, len(chunks), self._batch):
                 batch = chunks[start : start + self._batch]
@@ -152,6 +156,17 @@ class IngestService:
             corpus = replace(corpus, status=CorpusStatus.FAILED, chunk_count=0, error=str(exc)[:500])
         self._corpora.save(corpus)
         return corpus
+
+    def _check_quota(self, corpus_id: str, new_chunks: int) -> None:
+        if self._max_chunks <= 0:
+            return
+        used = sum(c.chunk_count for c in self._corpora.list() if c.corpus_id != corpus_id)
+        if used + new_chunks > self._max_chunks:
+            free = max(0, self._max_chunks - used)
+            raise ValidationError(
+                f"storage is full: this upload needs {new_chunks:,} passages and only {free:,} of "
+                f"{self._max_chunks:,} are free. Delete a corpus or upload less."
+            )
 
     def delete(self, corpus_id: str) -> None:
         if self._corpora.get(corpus_id) is None:
@@ -497,12 +512,14 @@ class StoryService:
         story, exchange = StoryWeaver(self._chats.create(run.provider, run.model)).weave(
             run.person, run.answers, [retrieved[c] for c in cited]
         )
+        story, padding = focus_text(story, retrieved)
         self._log.log(
             run.run_id,
             "weave",
             prompt=exchange.messages,
             response=exchange.response,
             model=reply_model(exchange.response) if exchange.response else None,
+            citations_removed=padding,
         )
 
         result = self._verifier(run.provider, run.model).verify(story, retrieved, set(retrieved))

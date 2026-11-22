@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+_PARAGRAPH = re.compile(r"\n\s*\n|\n(?=#)")
+_HEADING_LINE = re.compile(r"(?m)^(#[^\n]*)\n")
 CHUNK_ID = re.compile(r"\bd\d{2,}-\d{4,}\b")
 _BRACKET = re.compile(r"\[([^\[\]]*)\]")
 _ABBREVIATIONS = (
@@ -73,12 +75,18 @@ def cite_forward(paragraph: str) -> list[tuple[str, bool]]:
 
 def fill_paragraph_citations(text: str) -> str:
     """``text`` with every uncited sentence given its paragraph's next citation (see cite_forward)."""
-    paragraphs = (cite_forward(p) for p in re.split(r"\n\s*\n", text))
-    return "\n\n".join(" ".join(s for s, _ in pairs) for pairs in paragraphs if pairs)
+    blocks = (cite_forward(p) for p in re.split(r"\n\s*\n", text))
+    return "\n\n".join(" ".join(s for s, _ in pairs) for pairs in blocks if pairs)
 
 
 def strip_citations(text: str) -> str:
     return re.sub(r"\s+([.,;:!?])", r"\1", _BRACKET.sub("", text)).strip()
+
+
+def paragraphs(text: str) -> list[str]:
+    """Split on blank lines; a heading line is always a paragraph of its own, so the body
+    under "# Heading" (one newline) is not mistaken for part of the heading."""
+    return _PARAGRAPH.split(_HEADING_LINE.sub(r"\1\n\n", text))
 
 
 def split_sentences(text: str) -> list[str]:
@@ -87,7 +95,7 @@ def split_sentences(text: str) -> list[str]:
     Handles both "...Boston [d01-0003]." and "...Boston. [d01-0003]".
     """
     out: list[str] = []
-    for paragraph in re.split(r"\n\s*\n|\n(?=#)", text):
+    for paragraph in paragraphs(text):
         paragraph = paragraph.strip()
         if not paragraph or paragraph.startswith("#"):
             continue

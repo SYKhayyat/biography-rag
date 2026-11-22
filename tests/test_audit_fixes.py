@@ -4,6 +4,7 @@ text, compound questions, prompt delimiting and the run-log cap."""
 from __future__ import annotations
 
 from dataclasses import replace
+from typing import ClassVar
 
 import pytest
 
@@ -178,3 +179,73 @@ def test_judge_routes_to_its_configured_provider(app_parts, bio_file, chat):
     assert run.verification.flagged and "judge says no" in run.verification.checks[0].note
     started = next(e for e in app_parts["runs"].events(run.run_id) if e["type"] == "run_started")
     assert started["judge"]["provider"] == "judgeco"
+
+
+class TestCitationPadding:
+    CHUNKS: ClassVar[dict[str, Chunk]] = {
+        "d01-0000": Chunk("d01-0000", "d01", 0, "Franklin was born in Boston in 1706."),
+        "d01-0001": Chunk("d01-0001", "d01", 1, "His father Josiah made candles and soap."),
+        "d02-0000": Chunk("d02-0000", "d02", 0, "The kite experiment took place in Philadelphia."),
+    }
+
+    def test_ids_that_hold_no_word_are_dropped(self):
+        from biography_rag.rag.grounding import focus_citations
+
+        s, dropped = focus_citations("He was born in Boston in 1706 [d01-0000, d02-0000, d01-0001].", self.CHUNKS)
+        assert s == "He was born in Boston in 1706 [d01-0000]." and set(dropped) == {"d02-0000", "d01-0001"}
+
+    def test_each_needed_id_is_kept(self):
+        from biography_rag.rag.grounding import focus_citations
+
+        s, dropped = focus_citations(
+            "Born in Boston, son of a man who made candles [d02-0000, d01-0000, d01-0001].", self.CHUNKS
+        )
+        assert dropped == ["d02-0000"] and s.endswith("[d01-0000, d01-0001].")
+
+    def test_body_under_a_heading_is_checked_and_published(self):
+        from biography_rag.domain import Verdict
+        from biography_rag.rag.verification import LexicalVerifier, published_text
+
+        text = "# Early life\nBorn in Boston in 1706 [d01-0000]."
+        report = LexicalVerifier().verify(text, self.CHUNKS, set(self.CHUNKS)).report
+        assert [c.verdict for c in report.checks] == [Verdict.SUPPORTED]
+        assert published_text(text, report) == "Born in Boston in 1706 [d01-0000]."
+
+    def test_unknown_and_unrelated_ids_are_left_to_the_verifier(self):
+        from biography_rag.rag.grounding import focus_citations
+
+        assert focus_citations("Zebras sing [d01-0000, d02-0000].", self.CHUNKS)[1] == []
+        s, dropped = focus_citations("Born in Boston [d01-0000, d02-0000, d09-0009].", self.CHUNKS)
+        assert dropped == ["d02-0000"] and "d09-0009" in s
+
+    def test_text_keeps_untouched_paragraphs_and_headings(self):
+        from biography_rag.rag.grounding import focus_text
+
+        text = "# Early life\nBorn in Boston [d01-0000, d02-0000].\n\nHe flew a kite in Philadelphia [d02-0000]."
+        out, n = focus_text(text, self.CHUNKS)
+        assert n == 1
+        assert out == "# Early life\n\nBorn in Boston [d01-0000].\n\nHe flew a kite in Philadelphia [d02-0000]."
+
+    def test_gate_reports_the_trim(self):
+        from biography_rag.rag.grounding import gate
+
+        reply = 'EVIDENCE: "was born in Boston in 1706" [d01-0000]\nANSWER: Born in Boston [d01-0000, d02-0000].'
+        result = gate(reply, self.CHUNKS)
+        assert result.answer == "Born in Boston [d01-0000]." and result.cited_ids == ["d01-0000"]
+        assert "removed 1 citation" in result.reason
+
+
+class TestChunkQuota:
+    def test_upload_over_the_quota_fails_before_embedding(self, app_parts, bio_file):
+        ingest = app_parts["ingest"]
+        first = ingest.ingest(ingest.create("A", [bio_file]).corpus_id, [bio_file])
+        ingest._max_chunks = first.chunk_count + 2
+        second = ingest.ingest(ingest.create("B", [bio_file]).corpus_id, [bio_file])
+        assert second.status.value == "failed" and "storage is full" in second.error
+
+    def test_reingesting_the_same_corpus_does_not_count_itself(self, app_parts, bio_file):
+        ingest = app_parts["ingest"]
+        corpus = ingest.create("A", [bio_file])
+        done = ingest.ingest(corpus.corpus_id, [bio_file])
+        ingest._max_chunks = done.chunk_count
+        assert ingest.ingest(corpus.corpus_id, [bio_file]).status.value == "ready"

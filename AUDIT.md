@@ -50,12 +50,12 @@ whether it was actually exercised.
 | 5 | Fixed | `QueryAnswer.reason` records one of nothing_retrieved, not_in_sources, no_evidence, evidence_insufficient, empty_output, truncated or error. Failures show as "No answer: …", not "Not in the sources". |
 | 6 | Fixed | The question goes inside `<question>` tags. Any tags the user typed are stripped, and both prompts say the tagged text is data, not instructions. |
 | 7 | Mitigated | A compound question is split into its clauses. Each clause gets its own retrieval phrasing, plus `compound_extra_k` more chunks. |
-| 8 | Open | Citation padding is not addressed. |
+| 8 | Fixed | `focus_citations` keeps only the ids that hold some word of the sentence (a greedy cover over its content words) and drops the rest. It runs in the answer gate and on the woven story. The lexical verdict cannot change, since the kept ids cover the same words. The number removed is logged (`citations_removed`, plus a gate note). |
 | 9 | Fixed | Binary uploads are rejected (NUL or control bytes, or a fake PDF). An all-empty upload is rejected before any corpus row is created. |
 | 10 | Fixed | The judge fails closed: no verdict means flagged. It gets two attempts with a 2500-token budget. It can't clear a WEAK sentence that has a missing name or number. `JUDGE_PROVIDER`/`JUDGE_MODEL` can name a different model; empty means the author's model. |
 | 11 | Fixed | Errors are caught per question and recorded with reason "error". The run finishes with the other answers. |
 | 12 | Fixed | Each answer records `answered_by`, the model that actually replied, and Details shows it when it differs from the requested model. |
-| 13 | Partly fixed | Failed corpora are deleted after 24 h (`FAILED_CORPUS_TTL_HOURS`, checked hourly). Stored events are capped per run (`MAX_EVENTS_PER_RUN=400`, essential events always kept). There is still no chunk quota. |
+| 13 | Fixed | Failed corpora are deleted after 24 h (`FAILED_CORPUS_TTL_HOURS`, checked hourly). Stored events are capped per run (`MAX_EVENTS_PER_RUN=400`, essential events always kept). A total chunk quota (`MAX_TOTAL_CHUNKS=40000`, ≈320 MB) is checked before embedding, so an upload that would not fit fails at no cost. |
 | 14 | Mitigated | The pool size is `DB_POOL_SIZE` (default 12). No load test yet. |
 | 15–17 | Won't fix | Accepted limits. `/api/corpora` stays open behind the site password. |
 

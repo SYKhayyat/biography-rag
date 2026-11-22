@@ -11,7 +11,9 @@ so "not in the sources" no longer depends on the model choosing to say so:
   models cite once, at the end of a paragraph); the verifier still checks it against that snippet;
 * answer sentences with no citation to a retrieved snippet are dropped; a sentence that cites
   a retrieved snippet and also an id that was not retrieved keeps the sentence, minus that id;
-* nothing left after that -> not in the sources.
+* nothing left after that -> not in the sources;
+* each sentence keeps only the citations it needs (see ``focus_citations``): models pad every
+  sentence with all the ids they used, which makes each one look better sourced than it is.
 
 Every rejection or trim carries a reason, which the run log records next to the raw reply.
 """
@@ -24,8 +26,15 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 
 from biography_rag.domain import Chunk
-from biography_rag.rag.citations import cite_forward, cited_ids, keep_citations
-from biography_rag.text import words
+from biography_rag.rag.citations import (
+    cite_forward,
+    cited_ids,
+    keep_citations,
+    paragraphs,
+    split_sentences,
+    strip_citations,
+)
+from biography_rag.text import content_terms, words
 
 _EVIDENCE = re.compile(r"^\s*EVIDENCE:\s*[\"“](.+?)[\"”]\s*\[([^\]]+)\]", re.M | re.I)
 _ANSWER = re.compile(r"^\s*ANSWER:\s*", re.M | re.I)
@@ -63,6 +72,51 @@ def check_quote(quote: str, chunk: Chunk) -> bool:
     return quote_coverage(quote, chunk) >= MIN_COVERAGE
 
 
+def focus_citations(sentence: str, chunks: Mapping[str, Chunk]) -> tuple[str, list[str]]:
+    """``sentence`` citing only the chunks that hold its words, and the ids dropped.
+
+    Greedy cover: take the cited chunk that holds most of the sentence's content words, then
+    the one adding most of the rest, until no cited chunk adds anything. The kept chunks hold
+    every word the full list held, so the verifier's verdict cannot change; ids that add nothing
+    go. Ids that are not in ``chunks`` are left for the gate and the verifier to deal with."""
+    ids = cited_ids(sentence)
+    known = [i for i in ids if i in chunks]
+    if len(known) < 2:
+        return sentence, []
+    claim = set(content_terms(strip_citations(sentence)))
+    holds = {i: claim & set(content_terms(chunks[i].text)) for i in known}
+    covered: set[str] = set()
+    keep: list[str] = []
+    while True:
+        best = max((i for i in known if i not in keep), key=lambda i: len(holds[i] - covered), default=None)
+        if best is None or not holds[best] - covered:
+            break
+        keep.append(best)
+        covered |= holds[best]
+    if not keep:  # no cited chunk shares a word: leave it to the verifier to flag
+        return sentence, []
+    dropped = [i for i in known if i not in keep]
+    if not dropped:
+        return sentence, []
+    return keep_citations(sentence, set(ids) - set(dropped)), dropped
+
+
+def focus_text(text: str, chunks: Mapping[str, Chunk]) -> tuple[str, int]:
+    """``focus_citations`` on every sentence of ``text``; returns the text and how many ids
+    were dropped. Paragraphs nothing was dropped from are kept exactly as they were."""
+    total = 0
+    out = []
+    for paragraph in paragraphs(text):
+        if paragraph.strip().startswith("#"):
+            out.append(paragraph.strip())
+            continue
+        pairs = [focus_citations(s, chunks) for s in split_sentences(paragraph)]
+        dropped = sum(len(d) for _, d in pairs)
+        total += dropped
+        out.append(" ".join(s for s, _ in pairs) if dropped else paragraph.strip())
+    return "\n\n".join(p for p in out if p), total
+
+
 def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:
     evidence = []
     for quote, ids in _EVIDENCE.findall(response):
@@ -88,6 +142,9 @@ def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:
         bad = [i for i in ids if i not in chunks]
         stray.extend(i for i in bad if i not in stray)
         kept.append(keep_citations(s, chunks) if bad else s)
+    focused = [focus_citations(s, chunks) for s in kept]
+    kept = [s for s, _ in focused]
+    padding = sum(len(d) for _, d in focused)
     if not kept:
         return GateResult(None, [], evidence, "no answer sentence cites a retrieved snippet")
     answer = " ".join(kept)
@@ -98,4 +155,6 @@ def gate(response: str, chunks: Mapping[str, Chunk]) -> GateResult:
         notes.append(f"dropped {len(sentences) - len(kept)} uncited sentence(s)")
     if stray:
         notes.append(f"removed citation(s) to unretrieved {', '.join(stray)}")
+    if padding:
+        notes.append(f"removed {padding} citation(s) that support no word of their sentence")
     return GateResult(answer, cited_ids(answer), evidence, "; ".join(notes) or None)

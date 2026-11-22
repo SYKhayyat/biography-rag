@@ -82,7 +82,11 @@ def build_container(
         max_number_density=settings.max_number_density,
     )
     ingest = IngestService(
-        corpora, index, embedders, ParagraphChunker(size=settings.chunk_size, overlap=settings.chunk_overlap)
+        corpora,
+        index,
+        embedders,
+        ParagraphChunker(size=settings.chunk_size, overlap=settings.chunk_overlap),
+        max_total_chunks=settings.max_total_chunks,
     )
     story = StoryService(
         corpora,

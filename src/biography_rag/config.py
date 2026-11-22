@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     max_compare_targets: int = 6
     db_pool_size: int = 12  # Postgres connections; job workers x query threads share them
     failed_corpus_ttl_hours: float = 24.0  # failed uploads are deleted after this (0 = keep)
+    # Passages stored across all corpora (0 = no quota). ~8 KB each with a 1536-d embedding,
+    # so 40k is ~320 MB: inside Supabase's free 500 MB with room for runs.
+    max_total_chunks: int = 40_000
     max_events_per_run: int = 400  # run-log rows stored per run; later ones are dropped
     # Read the client address from X-Forwarded-For (proxy hops only). On by default on Render,
     # which sets RENDER=true; off elsewhere, where the header is whatever the client sent.

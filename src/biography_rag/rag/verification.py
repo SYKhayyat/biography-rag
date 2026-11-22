@@ -25,7 +25,7 @@ from typing import Protocol
 
 from biography_rag.domain import Chunk, SentenceCheck, Verdict, VerificationReport
 from biography_rag.llm.base import ChatModel, Message
-from biography_rag.rag.citations import cited_ids, split_sentences, strip_citations
+from biography_rag.rag.citations import cited_ids, paragraphs, split_sentences, strip_citations
 from biography_rag.rag.prompts import judge_messages
 from biography_rag.text import STOPWORDS, content_terms, words
 
@@ -169,9 +169,6 @@ def merge_chunks(groups: Sequence[Sequence[Chunk]]) -> dict[str, Chunk]:
     return {c.chunk_id: c for group in groups for c in group}
 
 
-_PARAGRAPH = re.compile(r"\n\s*\n|\n(?=#)")  # the same split split_sentences uses
-
-
 def published_text(text: str, report: VerificationReport) -> str:
     """``text`` without its flagged sentences: what readers see. Paragraphs left empty, and
     headings, are dropped. ``report`` must be the verification of this very ``text``."""
@@ -179,9 +176,9 @@ def published_text(text: str, report: VerificationReport) -> str:
     if len(checks) != len(split_sentences(text)):  # should not happen; never publish unchecked text
         return " ".join(c.sentence for c in checks if not c.flagged)
     flags = iter(c.flagged for c in checks)
-    paragraphs = []
-    for paragraph in _PARAGRAPH.split(text):
+    out = []
+    for paragraph in paragraphs(text):
         kept = [s for s in split_sentences(paragraph) if not next(flags)]
         if kept:
-            paragraphs.append(" ".join(kept))
-    return "\n\n".join(paragraphs)
+            out.append(" ".join(kept))
+    return "\n\n".join(out)
