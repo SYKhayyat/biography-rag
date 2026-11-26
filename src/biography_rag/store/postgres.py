@@ -206,16 +206,18 @@ class PostgresChunkIndex:
             ).fetchall()
         return [(Chunk(r[0], r[1], r[2], r[3], r[4]), float(r[5])) for r in rows]
 
-    def window(self, corpus_id: str, chunk: Chunk, radius: int) -> str:
+    def neighbours(self, corpus_id: str, chunk: Chunk, radius: int) -> tuple[str, str]:
         if radius <= 0:
-            return chunk.text
+            return "", ""
         with self._pool.connection() as conn:
             rows = conn.execute(
-                "select text from chunks where corpus_id = %s and doc_id = %s and ordinal between %s and %s "
-                "order by ordinal",
+                "select ordinal, text from chunks where corpus_id = %s and doc_id = %s "
+                "and ordinal between %s and %s order by ordinal",
                 (corpus_id, chunk.doc_id, chunk.ordinal - radius, chunk.ordinal + radius),
             ).fetchall()
-        return "\n\n".join(r[0] for r in rows) or chunk.text
+        before = "\n\n".join(r[1] for r in rows if r[0] < chunk.ordinal)
+        after = "\n\n".join(r[1] for r in rows if r[0] > chunk.ordinal)
+        return before, after
 
     def get_many(self, corpus_id: str, chunk_ids: Sequence[str]) -> dict[str, Chunk]:
         if not chunk_ids:

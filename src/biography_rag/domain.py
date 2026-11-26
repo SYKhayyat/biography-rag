@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import re
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -51,24 +51,53 @@ class RetrievedChunk:
     keyword_rank: int | None = None
 
 
-def merge_windows(selected: Sequence[Chunk], radius: int, texts: Mapping[str, str]) -> list[Chunk]:
-    """Snippets to answer from: each selected chunk widened by ``radius`` neighbours on both sides.
+SEAM_BEFORE = "[...before]"
 
-    ``texts`` maps a chunk id to its own widened text (supplied by the index, which is the only
-    thing that can read neighbours). Selection is swept in reading order per document, so two
-    neighbours that were both selected collapse into one window instead of the same paragraph
-    appearing twice in the prompt. Chunks that collapse lose their id: the model never saw it, so
-    it cannot cite it, and nothing it would have quoted is gone (it is inside the kept window).
+# A passage that opens with one of these was cut away from what they refer to.
+_OPENS_WITH_REFERENCE = re.compile(
+    r"^(he|she|it|they|his|her|its|their|him|them|this|that|these|those|such|the same|there|then|"
+    r"afterward|afterwards|meanwhile|still|yet)\b",
+    re.I,
+)
+_SENTENCE_END = re.compile(r"(?<=[.!?…])[\"'\u201d\u2019)\]]*\s+")  # keeps the punctuation
+
+
+def opens_with_reference(text: str) -> bool:
+    """True when the passage starts with a word that points back ('He...', 'This...')."""
+    return bool(_OPENS_WITH_REFERENCE.match(text.lstrip()[:40]))
+
+
+def _trailing_sentences(text: str, limit: int) -> str:
+    """The last whole sentences of ``text``, about ``limit`` characters (always at least one).
+    Cutting at a character offset leaves fragments like "e sixteen sons and daughters", which read
+    as corruption."""
+    if limit <= 0:
+        return ""
+    sentences = [p.strip() for p in _SENTENCE_END.split(text.strip()) if p.strip()]
+    if not sentences:
+        return ""
+    kept: list[str] = []
+    for sentence in reversed(sentences):
+        if kept and len(sentence) + len(" ".join(kept)) > limit:
+            break
+        kept.insert(0, sentence)
+    return " ".join(kept)
+
+
+def with_seam(chunk: Chunk, before: str, seam: int) -> Chunk:
+    """``chunk`` prefixed with the tail of the passage before it — but only when it needs it.
+
+    A chunk that starts "He was then bound apprentice..." is unreadable and unquotable without the
+    sentence before it, which is the whole reason to look at a neighbour. A chunk that starts a
+    sentence of its own needs nothing, and measured on the Franklin corpus, adding a seam to every
+    passage only lengthened the prompt. Whole sentences, never a character offset.
+
+    The marker is part of the snippet text, so a quote that happens to include it is still found.
     """
-    out: list[Chunk] = []
-    covered: dict[str, int] = {}  # doc_id -> highest ordinal already inside a kept window
-    for chunk in sorted(selected, key=lambda c: (c.doc_id, c.ordinal)):
-        if chunk.ordinal <= covered.get(chunk.doc_id, -1):
-            continue
-        covered[chunk.doc_id] = chunk.ordinal + radius
-        widened = texts.get(chunk.chunk_id)
-        out.append(replace(chunk, text=widened) if widened else chunk)
-    return out
+    if seam <= 0 or not before.strip() or not opens_with_reference(chunk.text):
+        return chunk
+    tail = _trailing_sentences(before, seam)
+    return replace(chunk, text=f"{SEAM_BEFORE} {tail}\n\n{chunk.text}") if tail else chunk
 
 
 class CorpusStatus(StrEnum):

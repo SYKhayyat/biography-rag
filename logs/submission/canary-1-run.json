@@ -1,6 +1,6 @@
 {
-  "run_id": "r1c6e901e93",
-  "corpus_id": "benjamin-franklin-209336",
+  "run_id": "rf1c2d43ed1",
+  "corpus_id": "benjamin-franklin-3ceca1",
   "person": "Benjamin Franklin",
   "provider": "openai",
   "model": "gpt-4.1-mini",
@@ -12,15 +12,18 @@
       "query_id": 0,
       "question": "Whose portrait is on the United States hundred-dollar bill?",
       "retrieved_ids": [
-        "d01-0018",
-        "d05-0650",
+        "d01-0005",
+        "d02-0136",
+        "d05-0305",
+        "d01-0462",
         "d02-0155",
-        "d05-0625",
-        "d05-0458",
-        "d05-0913"
+        "d01-0460"
       ],
       "answer": null,
       "cited_ids": [],
+      "reason": "evidence_insufficient",
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
       "display": "Not in the sources."
     }
   ],
@@ -33,6 +36,8 @@
   },
   "error": null,
   "kind": "ask",
-  "created_at": "2026-11-13T15:41:38.663522+00:00",
-  "finished_at": "2026-11-13T15:41:45.426180+00:00"
+  "question": "Whose portrait is on the United States hundred-dollar bill?",
+  "comparison_id": null,
+  "created_at": "2026-11-26T16:17:15.154787+00:00",
+  "finished_at": "2026-11-26T16:17:20.039580+00:00"
 }

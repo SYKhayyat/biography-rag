@@ -127,16 +127,18 @@ class MemoryChunkIndex:
         order = self._keep(corpus_id, [-t[3] for t in ranked], filters)[:k]
         return [(chunks[i], scores[i]) for i in order]
 
-    def window(self, corpus_id: str, chunk: Chunk, radius: int) -> str:
+    def neighbours(self, corpus_id: str, chunk: Chunk, radius: int) -> tuple[str, str]:
         if radius <= 0:
-            return chunk.text
+            return "", ""
         with self._lock:
             near = [
                 c
                 for c in self._chunks.get(corpus_id, [])
                 if c.doc_id == chunk.doc_id and chunk.ordinal - radius <= c.ordinal <= chunk.ordinal + radius
             ]
-        return "\n\n".join(c.text for c in sorted(near, key=lambda c: c.ordinal)) or chunk.text
+        before = [c.text for c in sorted(near, key=lambda c: c.ordinal) if c.ordinal < chunk.ordinal]
+        after = [c.text for c in sorted(near, key=lambda c: c.ordinal) if c.ordinal > chunk.ordinal]
+        return "\n\n".join(before), "\n\n".join(after)
 
     def get_many(self, corpus_id: str, chunk_ids: Sequence[str]) -> dict[str, Chunk]:
         wanted = set(chunk_ids)

@@ -170,7 +170,7 @@ def test_keyword_search_ranks_all_terms_first(stores):
     corpora.delete(corpus.corpus_id)
 
 
-def test_window_reads_neighbours_in_reading_order(stores):
+def test_neighbours_come_back_in_reading_order(stores):
     corpora, index, _ = stores
     corpus = new_corpus(corpora)
     emb = HashingEmbedder()
@@ -181,14 +181,10 @@ def test_window_reads_neighbours_in_reading_order(stores):
         Chunk("d02-0000", "d02", 0, "First passage of book two."),
     ]
     index.add(corpus.corpus_id, chunks, emb.embed_documents([c.embed_input for c in chunks]))
-    window = index.window(corpus.corpus_id, chunks[1], 1)
-    assert window.split("\n\n") == [
-        "First passage of book one.",
-        "Second passage of book one.",
-        "Third passage of book one.",
-    ]
-    assert index.window(corpus.corpus_id, chunks[1], 0) == chunks[1].text
-    assert index.window(corpus.corpus_id, chunks[3], 1) == chunks[3].text  # no neighbours in that book
+    before, after = index.neighbours(corpus.corpus_id, chunks[1], 1)
+    assert (before, after) == ("First passage of book one.", "Third passage of book one.")
+    assert index.neighbours(corpus.corpus_id, chunks[1], 0) == ("", "")
+    assert index.neighbours(corpus.corpus_id, chunks[3], 1) == ("", "")  # nothing either side there
     assert index.get_many(corpus.corpus_id, ["d01-0000"])["d01-0000"].context == "Book One"
     index.delete_corpus(corpus.corpus_id)
     corpora.delete(corpus.corpus_id)

@@ -86,37 +86,58 @@ class TestDiversity:
         cfg = RetrievalConfig(top_k=4, candidate_k=10, max_per_doc=2, neighbour_radius=0)
         assert len(HybridRetriever(index, emb, cfg).retrieve("c", "Benjamin Franklin printer")) == 4
 
-    def test_choose_skips_chunks_already_inside_a_window(self):
+    def test_choose_takes_the_top_of_the_ranking(self):
         chunks = {f"d01-000{i}": Chunk(f"d01-000{i}", "d01", i, "text") for i in range(10)}
-        ranked = list(chunks)
-        assert _choose(ranked, chunks, 3, 0, radius=1) == ["d01-0000", "d01-0002", "d01-0004"]
-        assert _choose(ranked, chunks, 3, 0, radius=0) == ranked[:3]
+        assert _choose(list(chunks), chunks, 3, 0) == ["d01-0000", "d01-0001", "d01-0002"]
 
 
-class TestNeighbourWindows:
-    def test_a_hit_is_widened_to_its_neighbours(self):
+class TestSeams:
+    """A hit that opens on a pronoun travels with a seam of what came before it — and only then.
+    Measured on the Franklin corpus, a seam on every passage only made the prompt longer."""
+
+    def test_a_passage_that_opens_on_a_pronoun_gets_the_sentence_before_it(self):
         index, emb = build(
-            {"d01": ["Opening sentence one.", "The answer is in the middle.", "Closing sentence three."]}
+            {"d01": ["Josiah had two wives. He was a tallow chandler.", "He bound Benjamin apprentice."]}
         )
-        cfg = RetrievalConfig(top_k=1, candidate_k=3, neighbour_radius=1)
-        hits = HybridRetriever(index, emb, cfg).retrieve("c", "The answer is in the middle")
-        assert "Opening sentence one." in hits[0].chunk.text
-        assert "Closing sentence three." in hits[0].chunk.text
-        assert hits[0].chunk.chunk_id == "d01-0001"  # the id still points at the passage itself
+        cfg = RetrievalConfig(top_k=1, candidate_k=3, neighbour_radius=1, seam_chars=240)
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "He bound Benjamin apprentice")[0]
+        assert (
+            hit.chunk.text
+            == "[...before] Josiah had two wives. He was a tallow chandler.\n\nHe bound Benjamin apprentice."
+        )
+        assert hit.chunk.chunk_id == "d01-0001"  # the id still points at the passage itself
 
-    def test_windows_never_cross_documents(self):
-        index, emb = build(
-            {"d01": ["Book one first.", "Book one middle.", "Book one last."], "d02": ["Book two first."]}
-        )
-        cfg = RetrievalConfig(top_k=1, candidate_k=5, neighbour_radius=1)
-        hits = HybridRetriever(index, emb, cfg).retrieve("c", "Book one first")
-        assert "Book two first." not in hits[0].chunk.text
+    def test_a_passage_that_starts_a_sentence_is_left_alone(self):
+        index, emb = build({"d01": ["Josiah was a chandler.", "Benjamin was bound apprentice to James."]})
+        cfg = RetrievalConfig(top_k=1, candidate_k=3, neighbour_radius=1, seam_chars=240)
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "Benjamin was bound apprentice to James")[0]
+        assert hit.chunk.text == "Benjamin was bound apprentice to James."
+
+    def test_the_seam_is_whole_sentences_and_bounded(self):
+        before = "First sentence here. Second sentence here. Third sentence here and it is long."
+        index, emb = build({"d01": [before, "He did the thing that matters."]})
+        cfg = RetrievalConfig(top_k=1, candidate_k=3, neighbour_radius=1, seam_chars=30)
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "He did the thing that matters")[0]
+        assert hit.chunk.text == "[...before] Third sentence here and it is long.\n\nHe did the thing that matters."
+        assert "e sentence" not in hit.chunk.text  # never a character-offset fragment
+
+    def test_seams_never_cross_documents(self):
+        index, emb = build({"d01": ["Book one first.", "He was in book one."], "d02": ["Book two first sentence."]})
+        cfg = RetrievalConfig(top_k=1, candidate_k=5, neighbour_radius=1, seam_chars=240)
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "He was in book one")[0]
+        assert "Book two first sentence." not in hit.chunk.text
 
     def test_radius_zero_sends_the_chunk_alone(self):
-        index, emb = build({"d01": ["First passage here.", "Second passage here."]})
+        index, emb = build({"d01": ["First passage here.", "He did the second thing."]})
         cfg = RetrievalConfig(top_k=1, candidate_k=2, neighbour_radius=0)
-        hits = HybridRetriever(index, emb, cfg).retrieve("c", "First passage here")
-        assert hits[0].chunk.text == "First passage here."
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "He did the second thing")[0]
+        assert hit.chunk.text == "He did the second thing."
+
+    def test_seam_chars_zero_sends_the_chunk_alone(self):
+        index, emb = build({"d01": ["First passage here.", "He did the second thing."]})
+        cfg = RetrievalConfig(top_k=1, candidate_k=2, neighbour_radius=1, seam_chars=0)
+        hit = HybridRetriever(index, emb, cfg).retrieve("c", "He did the second thing")[0]
+        assert hit.chunk.text == "He did the second thing."
 
 
 class TestReranker:

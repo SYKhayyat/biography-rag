@@ -291,13 +291,23 @@ are all in the current code; the numbers below come from the Franklin corpus.
 | `MIN_SIMILARITY=0` by default: no cut anywhere | 0.25, and a calibration script that measures it per embedder | Retrieval could never say "nothing relevant"; that burden fell entirely on the flaky YES/NO check (#3) |
 | RRF summed over arms | Mean over arms | Summed, a passage ranked #20 by six phrasings beat one ranked #1 by one phrasing: multi-part questions drifted to passages that vaguely matched everything |
 | FTS query OR-ed, ranked by `ts_rank_cd` only | Passages holding *every* term rank first, then `ts_rank_cd`, then the shorter passage | One common word ("family", "born") could carry a hit |
-| No diversity control over six biographies of one person | `MAX_PER_DOC=2`, never below an even share of `top_k` | The top 6 were often the same anecdote told in three books |
-| Chunks were anonymous slices; a quote had to fall inside one 1,200-char window | Each chunk carries book + chapter `context`, and is widened to its neighbours before the model reads it | Two real misattributions (son/grandson, "Mrs. Franklin" as a name) were exactly this; and a pronoun whose antecedent sat in the previous chunk made answerable questions fail the verbatim gate |
+| No diversity control over six biographies of one person | `MAX_PER_DOC`, built but **off**: measured, it answered no more questions and lowered the traced ratio | The top 6 were often the same anecdote told in three books; the cap costs the continuation of the best passage, which is worth more |
+| Chunks were anonymous slices; a quote had to fall inside one 1,200-char window | Each chunk carries book + chapter `context`; a passage that opens on a pronoun carries a whole-sentence `[...before]` seam | Two real misattributions (son/grandson, "Mrs. Franklin" as a name) were exactly this; and a pronoun whose antecedent sat in the previous chunk made answerable questions fail the verbatim gate |
 
 Two more stages exist but are **off by default**, because each costs one model call per question:
 `RERANK` (reorders the fused pool; reorders only, so it cannot lose recall) and `EXPAND_QUERIES`
 (writes a hypothetical passage plus two rephrasings — HyDE; the invented text is a query, never
 evidence, and a test asserts it never reaches the answer prompt).
+
+The changes were then measured rather than assumed: one corpus (4,176 passages), one model, one
+story run per configuration. A seam on **every** passage — cut at a character offset — answered
+14/20 against 19/20 for no seam at all, and a floor-plus-cap-plus-seam run showed why: prompts grew
+from 9.3k to 12.3k characters and passages began with fragments like "e sixteen sons and daughters".
+Seams are now whole sentences and only for passages that open on a pronoun, which measured 20/20,
+93% traced, 2 flagged. The per-book cap answered no more questions and lowered the traced ratio
+(85%, 5 flagged), so it is off by default. The cosine floor changed nothing (19/20 either way),
+which is the point of a noise filter. A one-question difference is noise here: the sufficiency
+check flips between runs (#3).
 
 Measured on two of the six books (1,545 passages, `text-embedding-3-small`): the rank-1 cosine is
 0.582–0.724 for the 20 fixed questions and at most 0.560 for the canaries, and the whole

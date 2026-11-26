@@ -82,6 +82,7 @@ def build_container(
         max_number_density=settings.max_number_density,
         max_per_doc=settings.max_per_doc,
         neighbour_radius=settings.neighbour_radius,
+        seam_chars=settings.seam_chars,
         rerank_pool=settings.rerank_pool,
     )
     ingest = IngestService(

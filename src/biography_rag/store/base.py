@@ -43,9 +43,9 @@ class ChunkIndex(Protocol):
     def keyword_search(
         self, corpus_id: str, text: str, k: int, filters: SearchFilters = NO_FILTERS
     ) -> list[tuple[Chunk, float]]: ...
-    def window(self, corpus_id: str, chunk: Chunk, radius: int) -> str:
-        """The chunk plus ``radius`` neighbours on each side of it in the same document,
-        in reading order. Returns ``chunk.text`` when there is nothing to widen."""
+    def neighbours(self, corpus_id: str, chunk: Chunk, radius: int) -> tuple[str, str]:
+        """The ``radius`` passages on each side of ``chunk`` in the same document, in reading
+        order: (before, after), joined. Empty when the chunk is at an edge or alone."""
         ...
 
     def get_many(self, corpus_id: str, chunk_ids: Sequence[str]) -> dict[str, Chunk]: ...

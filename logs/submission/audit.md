@@ -1,31 +1,48 @@
-# Sentence audit: run `r198ec82572`
+# Sentence audit: run `rc0b15bed96`
 
 | # | Verdict | Cited | Sentence | Note |
 |---|---|---|---|---|
-| 1 | supported | d02-0018, d04-0010 | Benjamin Franklin was born on January 6, 1706, in Boston, Massachusetts, where his father lived directly opposite the Old South Church in Milk Street [d02-0018, d04-0010]. |  |
-| 2 | supported | d02-0016, d06-0011 | His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011]. |  |
-| 3 | supported | d06-0008, d01-0023 | Benjamin was the youngest son in a large family of seventeen children, and his upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d06-0008, d01-0023]. |  |
-| 4 | supported | d04-0268, d06-0008 | His formal schooling was limited; he attended Boston Grammar School for less than a year, becoming head of his class, but much of his education was self-imparted [d04-0268, d06-0008]. |  |
-| 5 | supported | d01-0025, d02-0028 | At about the age of twelve, Benjamin was apprenticed to his older brother James, who was a printer, and this apprenticeship lasted nine years [d01-0025, d02-0028]. |  |
-| 6 | supported | d06-0048, d02-0028 | Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d06-0048, d02-0028]. |  |
-| 7 | supported | d05-0054, d04-0003 | Franklin was highly regarded as a printer by his peers and considered almost the patron saint of the printing craft [d05-0054, d04-0003]. |  |
-| 8 | supported | d02-0031, d04-0001 | He was also known for his practical ingenuity and love of reading [d02-0031, d04-0001]. |  |
-| 9 | supported | d01-0040, d01-0041 | Franklin married Deborah Read on September 1, 1730; she accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040, d01-0041]. | judge: supported (lexical: 67% of content words found in cited chunks; not in cited chunks: Deborah, Temple) |
-| 10 | supported | d04-0469, d02-0267 | Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0267]. |  |
-| 11 | supported | d04-0633, d02-0087, d04-0671 | Franklin had several close friends and companions, including his early youth friend John Collins from Boston, clerks Joseph Watson and Charles Osborne, and Abel James, a Quaker involved in Pennsylvania's silk manufacturing society [d04-0633, d02-0087, d04-0671]. |  |
-| 12 | supported | d06-0048 | He also had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048]. |  |
-| 13 | supported | d04-0666, d05-0273, d02-0012 | Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0273, d02-0012]. |  |
-| 14 | supported | d04-0018, d06-0171 | He was as much at home in London as in Philadelphia, spending about twenty-six years of his life abroad and crossing the Atlantic no less than eight times [d04-0018, d06-0171]. |  |
-| 15 | supported | d04-0001, d05-0855, d03-0437 | Franklin completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437]. |  |
-| 16 | supported | d06-0174 | Franklin died quietly at about eleven o'clock at night on April 17, 1790, having reached an honored and happy old age [d06-0174]. | judge: supported (lexical: 93% of content words found in cited chunks; not in cited chunks: 17) |
-| 17 | supported | d06-0175 | He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. |  |
-| 18 | supported | d04-0729 | His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729]. |  |
+| 1 | supported | d01-0021, d02-0018 | Benjamin Franklin was born on January 6, 1706, old style (January 17, 1706, new style), in Boston, Massachusetts, in a house on Milk Street opposite the Old South Church, on the morning of a Sabbath day [d01-0021, d02-0018]. |  |
+| 2 | supported | d02-0016, d01-0023, d06-0011 | His father, Josiah Franklin, had emigrated from Banbury, England, and was an intelligent and industrious man guided by high moral and religious principles; he worked as a tallow-chandler and soap-boiler, and Benjamin assisted him in this trade until about twelve years old [d02-0016, d01-0023, d06-0011]. |  |
+| 3 | supported | d01-0022 | Benjamin's mother was from the Folger family, from whom he inherited humane and liberal traits [d01-0022]. |  |
+| 4 | supported | d02-0028, d04-0540, d04-0546 | He grew up in a large family with sixteen siblings, including brothers James, John, Peter, and Josiah, and sisters Lydia and Anne Harris [d02-0028, d04-0540, d04-0546]. |  |
+| 5 | supported | d01-0022, d06-0008 | Benjamin's father initially intended him for the church and sent him to grammar school at age eight, where he quickly became a top student, but his formal education was cut short due to the family's limited means [d01-0022, d06-0008]. |  |
+| 6 | supported | d06-0009 | After attending a school for writing and arithmetic, he left at ten to help his father in the tallow-chandler business, which he disliked [d06-0009]. |  |
+| 7 | supported | d02-0028 | At about eleven, he was apprenticed to his brother James in the printing business for nine years, reluctantly accepting this path [d02-0028]. |  |
+| 8 | supported | d02-0030 | During his apprenticeship, Franklin devoted himself assiduously to learning the printing trade, often sacrificing leisure and sleep [d02-0030]. |  |
+| 9 | supported | d06-0008, d02-0030, d05-0860 | He continued his education through self-study and extensive reading while working as an apprentice [d06-0008, d02-0030, d05-0860]. |  |
+| 10 | supported | d06-0009, d02-0028 | Franklin's first job was helping his father in the tallow-chandler business, cutting wicks, running errands, and tending the shop [d06-0009, d02-0028]. |  |
+| 11 | supported | d02-0028 | He briefly tried the cutler's trade but abandoned it due to apprenticeship terms [d02-0028]. | judge: supported (lexical: 38% of content words found in cited chunks) |
+| 12 | supported | d02-0028, d02-0030 | Later, he apprenticed with his brother James as a printer, which he pursued for three years [d02-0028, d02-0030]. |  |
+| 13 | supported | d02-0056, d02-0111 | At age twenty, Franklin secretly escaped his apprenticeship by boarding a vessel to New York at night, using a false story to conceal his departure; his passage was swift and pleasant [d02-0056, d02-0111]. |  |
+| 14 | supported | d02-0111 | He then embarked on a long voyage to Philadelphia aboard the ship Berkshire, which took eighty days, keeping a diary filled with witty and wise remarks during the journey [d02-0111]. |  |
+| 15 | supported | d02-0106 | In his youth, Franklin made a serious mistake when he took advantage of a woman's company and attempted liberties which she repulsed, causing a breach with his friend Ralph that lasted thirty-five years [d02-0106]. |  |
+| 16 | supported | d06-0023 | He also faced difficulties during his apprenticeship when a political piece he wrote offended the Assembly, leading to his brother's imprisonment for refusing to reveal Franklin as the author [d06-0023]. |  |
+| 17 | supported | d05-0103 | Around age twenty-one, Franklin suffered from pleurisy, a serious illness that nearly killed him [d05-0103]. |  |
+| 18 | weak | d01-0040, d04-0412 | On September 1, 1730, Franklin married Deborah Read in a sensible, comfortable, and satisfactory union; she was a good and faithful helpmate who assisted him much, and they mutually endeavored to make each other happy [d01-0040, d04-0412]. | 89% of content words found in cited chunks; not in cited chunks: Read |
+| 19 | weak | d01-0040 | Deborah accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040]. | 56% of content words found in cited chunks; not in cited chunks: Temple |
+| 20 | supported | d02-0017, d04-0469, d02-0267 | Franklin had six children with Deborah, including Francis Folger, who died at about four years old, and Sarah Franklin [d02-0017, d04-0469, d02-0267]. |  |
+| 21 | supported | d04-0516 | Sarah had seven children, including Benjamin Franklin Bache and Richard Bache [d04-0516]. |  |
+| 22 | supported | d04-0014, d04-0018 | Franklin lived primarily in Philadelphia after moving from Boston, frequently visiting New York, and spent about twenty-six years living in England and France combined [d04-0014, d04-0018]. |  |
+| 23 | supported | d02-0421, d06-0171 | Early in 1777, he took up residence at Passy in France, where he remained during his stay in the country [d02-0421, d06-0171]. |  |
+| 24 | supported | d04-0018 | He also traveled to Scotland, Ireland, and other Continental countries during his life [d04-0018]. |  |
+| 25 | supported | d01-0069 | Among Franklin's inventions was the Franklin stove, also called the Pennsylvania fireplace, designed for better warming of rooms while saving fuel [d01-0069]. |  |
+| 26 | supported | d03-0437, d05-0735 | He also completed the musical instrument called the harmonica [d03-0437] and discovered the identity of lightning and electricity using simple materials [d05-0735]. |  |
+| 27 | supported | d01-0078, d04-0053 | Franklin was known for his ingenuity in local improvements, such as getting pavements laid, organizing street sweeping and lighting, and he valued the habit of integrity, which helped him gain influence despite being a poor speaker [d01-0078, d04-0053]. |  |
+| 28 | supported | d02-0371, d01-0214, d04-0625 | Franklin was known for his humor and wit, often using jokes and humorous writings to entertain and make points, such as his witty remarks in Congress and amusing newspaper anecdotes [d02-0371, d01-0214, d04-0625]. |  |
+| 29 | supported | d02-0087, d04-0736, d04-1062, d04-0633, d04-0630 | He had close friends throughout his life, including early companions John Collins, Joseph Watson, Charles Osborne, and James Ralph, and later intimate friends such as Mary "Polly" Stevenson, Mrs. Paschal, Thomas Mifflin, William Hunter, Jean Holker and his wife, John Joseph Monthieu, Turgot, Doctor Benjamin Rush, Charles Carroll of Carrollton, and Samuel Chase [d02-0087, d04-0736, d04-1062, d04-0633, d04-0630]. |  |
+| 30 | weak | d04-0665, d04-0666, d05-0266 | Franklin faced rivals and enemies, including Lee and Izard, and political opponents such as Dr. William Smith and the Proprietary Party in Pennsylvania, who directed many attacks against him [d04-0665, d04-0666, d05-0266]. | 69% of content words found in cited chunks; not in cited chunks: Pennsylvania |
+| 31 | supported | d01-0323 | One of the hardest experiences Franklin endured was a severe and cruel journey to Montreal in the spring of 1776, which was very taxing for a man of his age and nearly cost him his life due to fatigue and exposure [d01-0323]. |  |
+| 32 | supported | d04-0198, d02-0384 | He also narrowly escaped shipwreck off Falmouth Harbor on his second voyage to England and faced dangerous conditions when arriving in a deserted New York expected to be bombarded [d04-0198, d02-0384]. |  |
+| 33 | supported | d01-0622, d04-0654 | Benjamin Franklin died on April 17, 1790, after suffering chest pain and difficulty breathing; his last known words were "A dying man can do nothing easy" [d01-0622, d04-0654]. |  |
+| 34 | supported | d01-0622 | His funeral was attended by a great procession and many citizens, and Congress voted to wear mourning for one month [d01-0622]. |  |
+| 35 | supported | d01-0622, d04-0654, d06-0174 | He is remembered with great respect and tributes from many groups, having risen from humble beginnings to high station, wealth, and distinction through prudence and honesty [d01-0622, d04-0654, d06-0174]. |  |
 
 ## Canaries: 3/3 passed
 
 - Q: Whose portrait is on the United States hundred-dollar bill?  
-  A: Not in the sources. (run `r1c6e901e93`)
+  A: Not in the sources. (run `rf1c2d43ed1`)
 - Q: In what year did his portrait first appear on the hundred-dollar bill?  
-  A: Not in the sources. (run `r644384acb8`)
+  A: Not in the sources. (run `r7e5fd014d3`)
 - Q: What is shown on the back of the Franklin half dollar first minted in 1948?  
-  A: Not in the sources. (run `refe36b018c`)
+  A: Not in the sources. (run `r801f1bc932`)

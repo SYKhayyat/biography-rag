@@ -48,8 +48,12 @@ class Settings(BaseSettings):
     # the canary questions and below the real ones. text-embedding-3-small: ~0.25.
     min_similarity: float = 0.25
     max_number_density: float | None = 0.15  # skip back-of-book index chunks (numbers per word)
-    max_per_doc: int = 2  # passages from one book in the top-k; 0 = no cap
-    neighbour_radius: int = 1  # adjacent passages sent along with each hit; 0 = hit alone
+    # Passages from one book in the top-k. Measured on the Franklin corpus: the cap answered no
+    # more questions than no cap and lowered the traced ratio (85%/5 flagged vs 93%/2), so it is
+    # off. Turn it on when the corpus holds several books that retell the same events.
+    max_per_doc: int = 0
+    neighbour_radius: int = 1  # neighbours a hit brings a seam of; 0 = the hit alone
+    seam_chars: int = 240  # how much of each neighbour travels with the hit
     # A second model call reorders the pool before the top-k is cut. Costs one call per question.
     rerank: bool = False
     rerank_pool: int = 12

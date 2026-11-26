@@ -1,6 +1,6 @@
 {
-  "run_id": "r198ec82572",
-  "corpus_id": "benjamin-franklin-209336",
+  "run_id": "rc0b15bed96",
+  "corpus_id": "benjamin-franklin-3ceca1",
   "person": "Benjamin Franklin",
   "provider": "openai",
   "model": "gpt-4.1-mini",
@@ -12,376 +12,464 @@
       "query_id": 1,
       "question": "Where and when was Benjamin Franklin born?",
       "retrieved_ids": [
-        "d04-0010",
-        "d02-0132",
         "d02-0018",
-        "d04-0729",
+        "d06-0007",
         "d02-0017",
-        "d04-0000"
+        "d06-0008",
+        "d04-0009",
+        "d01-0021"
       ],
-      "answer": "At the time of his birth, his father lived directly opposite the Old South Church, in Milk Street, Boston [d04-0010, d02-0018, d02-0017].",
+      "answer": "Benjamin Franklin was born on January 6, 1706, old style (which corresponds to January 17, 1706, new style) [d01-0021]. He was born in Boston, Massachusetts, in a house on Milk Street opposite the Old South Church [d01-0021]. His birth took place on the morning of a Sabbath day [d02-0018]. His father resided directly opposite the Old South Church at the time of his birth [d02-0018, d04-0009].",
       "cited_ids": [
-        "d04-0010",
+        "d01-0021",
         "d02-0018",
-        "d02-0017"
+        "d04-0009"
       ],
-      "display": "At the time of his birth, his father lived directly opposite the Old South Church, in Milk Street, Boston [d04-0010, d02-0018, d02-0017]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin was born on January 6, 1706, old style (which corresponds to January 17, 1706, new style) [d01-0021]. He was born in Boston, Massachusetts, in a house on Milk Street opposite the Old South Church [d01-0021]. His birth took place on the morning of a Sabbath day [d02-0018]. His father resided directly opposite the Old South Church at the time of his birth [d02-0018, d04-0009]."
     },
     {
       "query_id": 2,
       "question": "Where were Benjamin Franklin's parents from, and what did they do?",
       "retrieved_ids": [
-        "d01-0023",
-        "d04-0537",
-        "d06-0017",
-        "d02-0016",
+        "d01-0026",
+        "d02-0028",
+        "d01-0022",
         "d06-0011",
-        "d02-0018"
+        "d02-0018",
+        "d06-0008",
+        "d01-0023",
+        "d06-0017",
+        "d02-0016"
       ],
-      "answer": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011].",
+      "answer": "Benjamin Franklin's parents emigrated from Banbury, England [d02-0016]. His father, Josiah Franklin, was an intelligent and industrious man guided by high moral and religious principles [d02-0016]. Josiah Franklin worked as a tallow-chandler and soap-boiler, and Benjamin assisted him in this trade until he was about twelve years old [d02-0016, d01-0023, d06-0011]. Franklin's mother was from the Folger family, from whom he inherited humane and liberal traits [d01-0022].",
       "cited_ids": [
         "d02-0016",
-        "d06-0011"
+        "d01-0023",
+        "d06-0011",
+        "d01-0022"
       ],
-      "display": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's parents emigrated from Banbury, England [d02-0016]. His father, Josiah Franklin, was an intelligent and industrious man guided by high moral and religious principles [d02-0016]. Josiah Franklin worked as a tallow-chandler and soap-boiler, and Benjamin assisted him in this trade until he was about twelve years old [d02-0016, d01-0023, d06-0011]. Franklin's mother was from the Folger family, from whom he inherited humane and liberal traits [d01-0022]."
     },
     {
       "query_id": 3,
       "question": "What was Benjamin Franklin's childhood like?",
       "retrieved_ids": [
-        "d01-0023",
+        "d01-0022",
+        "d02-0187",
         "d02-0021",
-        "d04-0085",
-        "d04-0000",
-        "d04-0729",
+        "d02-0028",
+        "d04-0554",
         "d06-0008"
       ],
-      "answer": "His upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d01-0023, d02-0021, d06-0008].",
+      "answer": "Benjamin Franklin's childhood was in a large family with sixteen siblings [d02-0028]. His father intended him for the church and sent him to grammar school at age eight, where he quickly became a top student [d01-0022, d06-0008]. However, due to the family's limited means, his formal education was cut short [d01-0022, d06-0008]. Franklin had a natural desire for a sailor's life, which contrasted with his father's plans [d01-0022, d02-0021]. At about eleven, he was apprenticed to his brother James in the printing business for nine years, reluctantly accepting this path [d02-0028]. His childhood was marked by early responsibility and a brief formal education due to family circumstances [d02-0021, d06-0008].",
       "cited_ids": [
-        "d01-0023",
-        "d02-0021",
-        "d06-0008"
+        "d02-0028",
+        "d01-0022",
+        "d06-0008",
+        "d02-0021"
       ],
-      "display": "His upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d01-0023, d02-0021, d06-0008]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's childhood was in a large family with sixteen siblings [d02-0028]. His father intended him for the church and sent him to grammar school at age eight, where he quickly became a top student [d01-0022, d06-0008]. However, due to the family's limited means, his formal education was cut short [d01-0022, d06-0008]. Franklin had a natural desire for a sailor's life, which contrasted with his father's plans [d01-0022, d02-0021]. At about eleven, he was apprenticed to his brother James in the printing business for nine years, reluctantly accepting this path [d02-0028]. His childhood was marked by early responsibility and a brief formal education due to family circumstances [d02-0021, d06-0008]."
     },
     {
       "query_id": 4,
       "question": "Who were Benjamin Franklin's siblings?",
       "retrieved_ids": [
-        "d04-0537",
+        "d02-0017",
         "d04-0540",
-        "d01-0025",
-        "d04-0000",
-        "d01-0022",
-        "d02-0017"
+        "d02-0028",
+        "d04-0537",
+        "d04-0546",
+        "d04-0586"
       ],
-      "answer": "James was an older brother who apprenticed Benjamin in printing [d04-0540, d01-0025].",
+      "answer": "Benjamin Franklin had several siblings [d04-0540, d04-0546]. He had brothers named James, John, Peter, and Josiah [d04-0540]. Four of his brothers died young [d04-0540]. He also had sisters named Lydia and Anne Harris [d04-0546]. In total, there were sixteen sons and daughters in the family from his father's two marriages [d02-0028].",
       "cited_ids": [
         "d04-0540",
-        "d01-0025"
+        "d04-0546",
+        "d02-0028"
       ],
-      "display": "James was an older brother who apprenticed Benjamin in printing [d04-0540, d01-0025]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin had several siblings [d04-0540, d04-0546]. He had brothers named James, John, Peter, and Josiah [d04-0540]. Four of his brothers died young [d04-0540]. He also had sisters named Lydia and Anne Harris [d04-0546]. In total, there were sixteen sons and daughters in the family from his father's two marriages [d02-0028]."
     },
     {
       "query_id": 5,
       "question": "What schooling or training did Benjamin Franklin have?",
       "retrieved_ids": [
-        "d04-0000",
         "d06-0008",
-        "d04-0268",
-        "d06-0086",
         "d02-0028",
-        "d05-0000"
+        "d02-0030",
+        "d06-0009",
+        "d06-0079",
+        "d05-0860"
       ],
-      "answer": "His formal schooling was limited, and much of his education was self-imparted [d06-0008, d04-0268, d02-0028].",
+      "answer": "Benjamin Franklin was initially intended for the church and attended a grammar school at eight years old but only for about a year due to his father's financial constraints [d06-0008]. He then went to a school for writing and arithmetic but left at ten to help his father in business [d06-0009]. At twelve, he was apprenticed to his brother James Franklin to learn the printing trade, a commitment that lasted nine years [d02-0028]. After leaving formal schooling, Franklin continued his education through self-study and reading extensively while working as an apprentice [d06-0008, d02-0030, d05-0860].",
       "cited_ids": [
         "d06-0008",
-        "d04-0268",
-        "d02-0028"
+        "d06-0009",
+        "d02-0028",
+        "d02-0030",
+        "d05-0860"
       ],
-      "display": "His formal schooling was limited, and much of his education was self-imparted [d06-0008, d04-0268, d02-0028]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin was initially intended for the church and attended a grammar school at eight years old but only for about a year due to his father's financial constraints [d06-0008]. He then went to a school for writing and arithmetic but left at ten to help his father in business [d06-0009]. At twelve, he was apprenticed to his brother James Franklin to learn the printing trade, a commitment that lasted nine years [d02-0028]. After leaving formal schooling, Franklin continued his education through self-study and reading extensively while working as an apprentice [d06-0008, d02-0030, d05-0860]."
     },
     {
       "query_id": 6,
       "question": "What was Benjamin Franklin's first job?",
       "retrieved_ids": [
-        "d06-0048",
         "d02-0028",
-        "d06-0057",
-        "d05-0054",
+        "d02-0030",
+        "d06-0011",
         "d02-0132",
-        "d04-0000"
+        "d06-0009",
+        "d06-0062"
       ],
-      "answer": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d02-0028, d06-0048].",
+      "answer": "Benjamin Franklin's first job was helping his father in the business of a tallow-chandler, where he was employed in cutting the wick for candles, going errands, and tending the shop [d06-0009, d02-0028]. Later, he selected the employment of a cutler and entered upon that business for a few days, but it was given up due to issues with apprenticeship terms [d02-0028]. Subsequently, he was apprenticed to his brother James Franklin to learn the trade of a printer, which he devoted himself to for three years [d02-0028, d02-0030]. Thus, his earliest work was in his father's tallow-chandler business before moving on to printing [d06-0009, d02-0030].",
       "cited_ids": [
+        "d06-0009",
         "d02-0028",
-        "d06-0048"
+        "d02-0030"
       ],
-      "display": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d02-0028, d06-0048]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's first job was helping his father in the business of a tallow-chandler, where he was employed in cutting the wick for candles, going errands, and tending the shop [d06-0009, d02-0028]. Later, he selected the employment of a cutler and entered upon that business for a few days, but it was given up due to issues with apprenticeship terms [d02-0028]. Subsequently, he was apprenticed to his brother James Franklin to learn the trade of a printer, which he devoted himself to for three years [d02-0028, d02-0030]. Thus, his earliest work was in his father's tallow-chandler business before moving on to printing [d06-0009, d02-0030]."
     },
     {
       "query_id": 7,
       "question": "An adventurous story from Benjamin Franklin's life.",
       "retrieved_ids": [
-        "d04-0000",
-        "d06-0003",
-        "d01-0020",
-        "d06-0057",
-        "d01-0025",
-        "d02-0011"
+        "d06-0038",
+        "d02-0111",
+        "d02-0027",
+        "d06-0029",
+        "d02-0056",
+        "d06-0050"
       ],
-      "answer": null,
-      "cited_ids": [],
-      "display": "Not in the sources."
+      "answer": "Benjamin Franklin's adventurous story includes his secret escape from his apprenticeship by boarding a vessel to New York at night, using a false story to conceal his departure [d02-0056, d02-0111]. His passage was swift and pleasant [d02-0056]. Later, he embarked on a long voyage to Philadelphia aboard the ship Berkshire, which took eighty days [d02-0111]. During another part of his journey, his crew was stranded near a stony beach with violent surf, remaining anchored through the night and enduring harsh conditions before reaching Amboy [d06-0029]. Franklin kept a diary during his voyages, filled with witty and wise remarks [d02-0111].",
+      "cited_ids": [
+        "d02-0056",
+        "d02-0111",
+        "d06-0029"
+      ],
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's adventurous story includes his secret escape from his apprenticeship by boarding a vessel to New York at night, using a false story to conceal his departure [d02-0056, d02-0111]. His passage was swift and pleasant [d02-0056]. Later, he embarked on a long voyage to Philadelphia aboard the ship Berkshire, which took eighty days [d02-0111]. During another part of his journey, his crew was stranded near a stony beach with violent surf, remaining anchored through the night and enduring harsh conditions before reaching Amboy [d06-0029]. Franklin kept a diary during his voyages, filled with witty and wise remarks [d02-0111]."
     },
     {
       "query_id": 8,
       "question": "A scary or dangerous moment Benjamin Franklin faced.",
       "retrieved_ids": [
-        "d01-0177",
-        "d04-0000",
-        "d02-0012",
-        "d02-0409",
+        "d01-0024",
         "d03-0471",
-        "d05-0000"
+        "d02-0207",
+        "d02-0384",
+        "d04-0198",
+        "d04-0380"
       ],
-      "answer": "Fortunately, the crisis passed without further incident [d01-0177].",
+      "answer": "Benjamin Franklin faced a scary moment when he narrowly escaped shipwreck off Falmouth Harbor on his second voyage to England [d04-0198, d02-0384]. Another dangerous moment was when he and others reached New York, which was deserted except for a few soldiers, as it was expected that the British would soon open a terrific bombardment on the city [d04-0198, d02-0384].",
       "cited_ids": [
-        "d01-0177"
+        "d04-0198",
+        "d02-0384"
       ],
-      "display": "Fortunately, the crisis passed without further incident [d01-0177]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin faced a scary moment when he narrowly escaped shipwreck off Falmouth Harbor on his second voyage to England [d04-0198, d02-0384]. Another dangerous moment was when he and others reached New York, which was deserted except for a few soldiers, as it was expected that the British would soon open a terrific bombardment on the city [d04-0198, d02-0384]."
     },
     {
       "query_id": 9,
       "question": "A funny anecdote about Benjamin Franklin.",
       "retrieved_ids": [
-        "d04-0001",
-        "d06-0086",
         "d02-0371",
-        "d04-0000",
-        "d01-0020",
-        "d02-0011"
+        "d06-0016",
+        "d01-0098",
+        "d04-0625",
+        "d01-0214",
+        "d06-0132"
       ],
-      "answer": "This joke showed his characteristic humor and wit in Congress [d02-0371].",
+      "answer": "Benjamin Franklin was known for his humor and wit [d02-0371]. In Congress, when it was suggested that the Episcopal clergy should stop praying for the king, Franklin joked that the clergy had been praying for the king's wisdom for twenty years without any effect, making the measure unnecessary [d02-0371]. He also wrote humorous pieces, such as a reply to the claim that American sheep had little wool, where he joked that the tails of American sheep were so laden with wool they needed little wagons to keep them off the ground [d01-0214]. Additionally, Franklin admitted to creating amusing anecdotes and fables to fill newspaper columns when news was scarce, such as the story of Polly Baker, which he made up to entertain readers [d04-0625].",
       "cited_ids": [
-        "d02-0371"
+        "d02-0371",
+        "d01-0214",
+        "d04-0625"
       ],
-      "display": "This joke showed his characteristic humor and wit in Congress [d02-0371]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin was known for his humor and wit [d02-0371]. In Congress, when it was suggested that the Episcopal clergy should stop praying for the king, Franklin joked that the clergy had been praying for the king's wisdom for twenty years without any effect, making the measure unnecessary [d02-0371]. He also wrote humorous pieces, such as a reply to the claim that American sheep had little wool, where he joked that the tails of American sheep were so laden with wool they needed little wagons to keep them off the ground [d01-0214]. Additionally, Franklin admitted to creating amusing anecdotes and fables to fill newspaper columns when news was scarce, such as the story of Polly Baker, which he made up to entertain readers [d04-0625]."
     },
     {
       "query_id": 10,
       "question": "A time Benjamin Franklin failed or made a serious mistake.",
       "retrieved_ids": [
-        "d01-0142",
-        "d04-0000",
-        "d01-0324",
-        "d04-0537",
-        "d01-0033",
-        "d05-0000"
+        "d02-0106",
+        "d06-0023",
+        "d01-0141",
+        "d01-0226",
+        "d01-0032",
+        "d05-0173"
       ],
-      "answer": "This episode represents a serious mistake or failure in his career [d01-0324].",
+      "answer": "Benjamin Franklin made a serious mistake in his youth when he took advantage of a woman's company and attempted to take liberties with her, which she repulsed [d02-0106]. This caused a breach between Franklin and Ralph, who considered all obligations to Franklin annulled and broke off communication for thirty-five years [d02-0106]. Additionally, during his apprenticeship with his brother, Franklin's vanity led to serious difficulties, and a political piece in the paper offended the Assembly, resulting in his brother's imprisonment because he would not reveal Franklin as the author [d06-0023].",
       "cited_ids": [
-        "d01-0324"
+        "d02-0106",
+        "d06-0023"
       ],
-      "display": "This episode represents a serious mistake or failure in his career [d01-0324]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin made a serious mistake in his youth when he took advantage of a woman's company and attempted to take liberties with her, which she repulsed [d02-0106]. This caused a breach between Franklin and Ralph, who considered all obligations to Franklin annulled and broke off communication for thirty-five years [d02-0106]. Additionally, during his apprenticeship with his brother, Franklin's vanity led to serious difficulties, and a political piece in the paper offended the Assembly, resulting in his brother's imprisonment because he would not reveal Franklin as the author [d06-0023]."
     },
     {
       "query_id": 11,
       "question": "The hardest thing Benjamin Franklin went through.",
       "retrieved_ids": [
-        "d01-0324",
-        "d04-0000",
-        "d01-0142",
-        "d06-0057",
-        "d04-0001",
-        "d04-0537"
+        "d01-0323",
+        "d05-0103",
+        "d04-0309",
+        "d05-0872",
+        "d02-0265",
+        "d04-0541"
       ],
-      "answer": "Ultimately, the journey was fruitless, as he found himself on a bootless errand [d01-0324].",
+      "answer": "One of the hardest things Benjamin Franklin went through was a severe and cruel journey to Montreal in the spring of 1776, which was very taxing for a man of his age and nearly cost him his life due to fatigue and exposure [d01-0323]. Another very difficult experience was when he suffered from pleurisy, a serious illness that nearly killed him when he was just over twenty years old [d05-0103].",
       "cited_ids": [
-        "d01-0324"
+        "d01-0323",
+        "d05-0103"
       ],
-      "display": "Ultimately, the journey was fruitless, as he found himself on a bootless errand [d01-0324]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "One of the hardest things Benjamin Franklin went through was a severe and cruel journey to Montreal in the spring of 1776, which was very taxing for a man of his age and nearly cost him his life due to fatigue and exposure [d01-0323]. Another very difficult experience was when he suffered from pleurisy, a serious illness that nearly killed him when he was just over twenty years old [d05-0103]."
     },
     {
       "query_id": 12,
       "question": "Who did Benjamin Franklin marry, and what was that relationship like?",
       "retrieved_ids": [
+        "d01-0039",
+        "d02-0146",
         "d01-0040",
-        "d01-0041",
-        "d04-0516",
-        "d04-0000",
-        "d01-0129",
-        "d04-0537"
+        "d01-0037",
+        "d04-0405",
+        "d04-0412",
+        "d02-0267",
+        "d04-0431",
+        "d02-0145"
       ],
-      "answer": "She also accepted and raised Franklin's illegitimate son as her own [d01-0040, d01-0041].",
+      "answer": "Benjamin Franklin married Deborah Read on September 1, 1730 [d01-0040, d04-0405]. Their relationship was described by Franklin as a sensible, comfortable, and satisfactory union, with Mrs. Franklin being a good and faithful helpmate who assisted him much and with whom he mutually endeavored to make each other happy [d01-0040, d04-0412]. Despite some initial uncertainties about Deborah's previous marriage to a man named Rogers, who had fled and was rumored dead, Franklin and Deborah lived together harmoniously [d04-0412, d02-0146]. Mrs. Franklin also accepted and raised Franklin's illegitimate son as her own [d01-0040]. Their marriage lasted for forty years without regret from either party [d01-0040, d04-0405].",
       "cited_ids": [
         "d01-0040",
-        "d01-0041"
+        "d04-0405",
+        "d04-0412",
+        "d02-0146"
       ],
-      "display": "She also accepted and raised Franklin's illegitimate son as her own [d01-0040, d01-0041]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin married Deborah Read on September 1, 1730 [d01-0040, d04-0405]. Their relationship was described by Franklin as a sensible, comfortable, and satisfactory union, with Mrs. Franklin being a good and faithful helpmate who assisted him much and with whom he mutually endeavored to make each other happy [d01-0040, d04-0412]. Despite some initial uncertainties about Deborah's previous marriage to a man named Rogers, who had fled and was rumored dead, Franklin and Deborah lived together harmoniously [d04-0412, d02-0146]. Mrs. Franklin also accepted and raised Franklin's illegitimate son as her own [d01-0040]. Their marriage lasted for forty years without regret from either party [d01-0040, d04-0405]."
     },
     {
       "query_id": 13,
       "question": "What about Benjamin Franklin's children?",
       "retrieved_ids": [
-        "d04-0469",
         "d02-0017",
+        "d01-0021",
+        "d04-0469",
         "d02-0267",
-        "d04-0537",
-        "d04-0000",
-        "d02-0188"
+        "d04-0516",
+        "d02-0174"
       ],
-      "answer": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0017, d02-0267].",
+      "answer": "Benjamin Franklin had six children with his first wife, who died leaving the eldest child at eleven years old [d02-0017, d04-0469, d04-0516]. He then married Abiah Folger, with whom he had ten children [d02-0017]. Among his children with Deborah Franklin were Francis Folger, who died at about four years old, and Sarah Franklin [d02-0017, d04-0469, d02-0267]. Franklin also had an illegitimate son named William Temple Franklin [d02-0267]. Sarah Franklin had seven children, including Benjamin Franklin Bache and Richard Bache [d04-0516]. Franklin was deeply affected by the death of his son Francis [d04-0469].",
       "cited_ids": [
-        "d04-0469",
         "d02-0017",
+        "d04-0469",
+        "d04-0516",
         "d02-0267"
       ],
-      "display": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0017, d02-0267]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin had six children with his first wife, who died leaving the eldest child at eleven years old [d02-0017, d04-0469, d04-0516]. He then married Abiah Folger, with whom he had ten children [d02-0017]. Among his children with Deborah Franklin were Francis Folger, who died at about four years old, and Sarah Franklin [d02-0017, d04-0469, d02-0267]. Franklin also had an illegitimate son named William Temple Franklin [d02-0267]. Sarah Franklin had seven children, including Benjamin Franklin Bache and Richard Bache [d04-0516]. Franklin was deeply affected by the death of his son Francis [d04-0469]."
     },
     {
       "query_id": 14,
       "question": "Who were Benjamin Franklin's closest friends or mentors?",
       "retrieved_ids": [
-        "d04-0000",
-        "d04-0633",
         "d02-0087",
-        "d06-0057",
-        "d04-0671",
-        "d06-0048"
+        "d04-0633",
+        "d04-1062",
+        "d04-0736",
+        "d04-0608",
+        "d04-0630"
       ],
-      "answer": "Benjamin Franklin's closest friends or mentors included his early youth friend John Collins, who was from Boston [d04-0633]. He also had three intimate companions who were clerks and shared a common taste for business, among them Joseph Watson, described as a pious and sensible young man of great integrity [d02-0087]. Another close friend was Abel James, a Quaker involved in the Pennsylvania silk manufacturing society [d04-0671]. Additionally, Franklin had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048].",
+      "answer": "Benjamin Franklin's closest friends in his early youth included his Boston friend John Collins and three intimate companions who were clerks: Joseph Watson, Charles Osborne, and James Ralph [d02-0087, d04-0633]. In England, his closest friendship was with Mary, or Polly, Stevenson [d04-0736]. He also had many intimate friends such as Mrs. Paschal, Thomas Mifflin, William Hunter, Jean Holker and his wife, John Joseph Monthieu, and Turgot [d04-1062]. Among his notable intimate friends were Doctor Benjamin Rush, Charles Carroll of Carrollton, and Samuel Chase, with whom he worked closely in the Continental Congress [d04-0633, d04-0630].",
       "cited_ids": [
-        "d04-0633",
         "d02-0087",
-        "d04-0671",
-        "d06-0048"
+        "d04-0633",
+        "d04-0736",
+        "d04-1062",
+        "d04-0630"
       ],
-      "display": "Benjamin Franklin's closest friends or mentors included his early youth friend John Collins, who was from Boston [d04-0633]. He also had three intimate companions who were clerks and shared a common taste for business, among them Joseph Watson, described as a pious and sensible young man of great integrity [d02-0087]. Another close friend was Abel James, a Quaker involved in the Pennsylvania silk manufacturing society [d04-0671]. Additionally, Franklin had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's closest friends in his early youth included his Boston friend John Collins and three intimate companions who were clerks: Joseph Watson, Charles Osborne, and James Ralph [d02-0087, d04-0633]. In England, his closest friendship was with Mary, or Polly, Stevenson [d04-0736]. He also had many intimate friends such as Mrs. Paschal, Thomas Mifflin, William Hunter, Jean Holker and his wife, John Joseph Monthieu, and Turgot [d04-1062]. Among his notable intimate friends were Doctor Benjamin Rush, Charles Carroll of Carrollton, and Samuel Chase, with whom he worked closely in the Continental Congress [d04-0633, d04-0630]."
     },
     {
       "query_id": 15,
       "question": "Who were Benjamin Franklin's rivals or enemies?",
       "retrieved_ids": [
-        "d04-0000",
-        "d05-0267",
+        "d04-0665",
+        "d02-0055",
         "d04-0666",
-        "d06-0057",
-        "d02-0012",
-        "d05-0273"
+        "d01-0156",
+        "d06-0142",
+        "d05-0266"
       ],
-      "answer": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0267, d02-0012, d05-0273].",
+      "answer": "Benjamin Franklin's rivals or enemies included Lee and Izard, with Izard's enmity arising because Franklin neglected to pay him a compliment, and Lee's enmity stemming from the People of France respecting Franklin more than Lee [d04-0665]. He also had political enemies such as Dr. William Smith, who attacked him both during his life and after his death [d04-0666]. Additionally, the proprietaries in the province formed a party that hated Franklin with extreme bitterness, and the Proprietary Party directed many attacks against him [d01-0156, d05-0266].",
       "cited_ids": [
+        "d04-0665",
         "d04-0666",
-        "d05-0267",
-        "d02-0012",
-        "d05-0273"
+        "d01-0156",
+        "d05-0266"
       ],
-      "display": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0267, d02-0012, d05-0273]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin's rivals or enemies included Lee and Izard, with Izard's enmity arising because Franklin neglected to pay him a compliment, and Lee's enmity stemming from the People of France respecting Franklin more than Lee [d04-0665]. He also had political enemies such as Dr. William Smith, who attacked him both during his life and after his death [d04-0666]. Additionally, the proprietaries in the province formed a party that hated Franklin with extreme bitterness, and the Proprietary Party directed many attacks against him [d01-0156, d05-0266]."
     },
     {
       "query_id": 16,
       "question": "What is Benjamin Franklin best known for?",
       "retrieved_ids": [
-        "d04-0000",
-        "d04-0003",
-        "d04-0001",
-        "d04-0729",
-        "d05-0054",
-        "d06-0057"
+        "d01-0102",
+        "d05-0053",
+        "d04-0220",
+        "d05-0051",
+        "d02-0018",
+        "d01-0074"
       ],
-      "answer": "Additionally, he was a printer highly regarded by his peers, considered almost the patron saint of the printing craft [d04-0003, d04-0001, d05-0054].",
-      "cited_ids": [
-        "d04-0003",
-        "d04-0001",
-        "d05-0054"
-      ],
-      "display": "Additionally, he was a printer highly regarded by his peers, considered almost the patron saint of the printing craft [d04-0003, d04-0001, d05-0054]."
+      "answer": null,
+      "cited_ids": [],
+      "reason": "evidence_insufficient",
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Not in the sources."
     },
     {
       "query_id": 17,
       "question": "Something Benjamin Franklin made, invented or discovered.",
       "retrieved_ids": [
-        "d04-0001",
-        "d04-0537",
-        "d04-0729",
-        "d05-0855",
+        "d01-0069",
+        "d05-0853",
+        "d04-0027",
         "d03-0437",
-        "d04-0000"
+        "d05-0735",
+        "d05-0744"
       ],
-      "answer": "Franklin also completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437].",
+      "answer": "Benjamin Franklin invented the Franklin stove, also called the Pennsylvania fireplace, which was designed for better warming of rooms while saving fuel [d01-0069]. He also completed the musical instrument called the harmonica [d03-0437]. Additionally, he discovered the identity of lightning and electricity using simple materials [d05-0735].",
       "cited_ids": [
-        "d04-0001",
-        "d05-0855",
-        "d03-0437"
+        "d01-0069",
+        "d03-0437",
+        "d05-0735"
       ],
-      "display": "Franklin also completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin invented the Franklin stove, also called the Pennsylvania fireplace, which was designed for better warming of rooms while saving fuel [d01-0069]. He also completed the musical instrument called the harmonica [d03-0437]. Additionally, he discovered the identity of lightning and electricity using simple materials [d05-0735]."
     },
     {
       "query_id": 18,
       "question": "Where did Benjamin Franklin travel or live?",
       "retrieved_ids": [
-        "d04-0000",
+        "d04-0014",
         "d04-0018",
-        "d04-0537",
+        "d02-0421",
+        "d03-0440",
         "d06-0171",
-        "d04-0611",
-        "d06-0086"
+        "d01-0103"
       ],
-      "answer": "He was as much at home in London as in Philadelphia [d04-0018, d06-0171, d04-0611].",
+      "answer": "Benjamin Franklin was born and raised in Boston and later moved to Philadelphia, which was his lifelong place of residence [d04-0014, d04-0018]. He frequently visited New York as well [d04-0014, d04-0018]. He lived for long periods in England and France, spending about twenty-six years in those countries combined [d04-0014, d04-0018]. Early in 1777, he took up residence at Passy in France and remained there while in the country [d02-0421, d06-0171]. He also traveled to Scotland, Ireland, and other Continental countries during his life [d04-0018].",
       "cited_ids": [
+        "d04-0014",
         "d04-0018",
-        "d06-0171",
-        "d04-0611"
+        "d02-0421",
+        "d06-0171"
       ],
-      "display": "He was as much at home in London as in Philadelphia [d04-0018, d06-0171, d04-0611]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin was born and raised in Boston and later moved to Philadelphia, which was his lifelong place of residence [d04-0014, d04-0018]. He frequently visited New York as well [d04-0014, d04-0018]. He lived for long periods in England and France, spending about twenty-six years in those countries combined [d04-0014, d04-0018]. Early in 1777, he took up residence at Passy in France and remained there while in the country [d02-0421, d06-0171]. He also traveled to Scotland, Ireland, and other Continental countries during his life [d04-0018]."
     },
     {
       "query_id": 19,
       "question": "A habit, hobby or quirk of Benjamin Franklin.",
       "retrieved_ids": [
-        "d04-0000",
-        "d04-0001",
-        "d02-0031",
-        "d04-0537",
-        "d01-0020",
-        "d04-0729"
+        "d01-0078",
+        "d06-0012",
+        "d06-0028",
+        "d06-0164",
+        "d04-0053",
+        "d06-0222"
       ],
-      "answer": "These habits show his practical ingenuity and love of reading [d04-0001, d02-0031].",
+      "answer": "Benjamin Franklin had a passionate fondness for reading from his infancy, spending all his money on books and delighting in stories of voyages and travels [d06-0012, d01-0078]. He showed ingenuity in local improvements, such as getting pavements laid and organizing street sweeping and lighting [d01-0078]. He also played chess, considering it an innocent and beneficial amusement that strengthened valuable mental qualities and habits [d06-0222]. Additionally, he valued the habit of integrity, which helped him gain influence despite being a poor speaker [d04-0053].",
       "cited_ids": [
-        "d04-0001",
-        "d02-0031"
+        "d06-0012",
+        "d01-0078",
+        "d06-0222",
+        "d04-0053"
       ],
-      "display": "These habits show his practical ingenuity and love of reading [d04-0001, d02-0031]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin had a passionate fondness for reading from his infancy, spending all his money on books and delighting in stories of voyages and travels [d06-0012, d01-0078]. He showed ingenuity in local improvements, such as getting pavements laid and organizing street sweeping and lighting [d01-0078]. He also played chess, considering it an innocent and beneficial amusement that strengthened valuable mental qualities and habits [d06-0222]. Additionally, he valued the habit of integrity, which helped him gain influence despite being a poor speaker [d04-0053]."
     },
     {
       "query_id": 20,
       "question": "How did Benjamin Franklin die, and how is Benjamin Franklin remembered?",
       "retrieved_ids": [
-        "d04-0000",
-        "d06-0175",
-        "d05-0000",
-        "d06-0174",
-        "d04-0729",
-        "d06-0176"
+        "d02-0188",
+        "d01-0623",
+        "d04-0654",
+        "d04-0541",
+        "d02-0119",
+        "d01-0622",
+        "d02-0174",
+        "d04-0430",
+        "d06-0174"
       ],
-      "answer": "Benjamin Franklin died quietly at about eleven o'clock at night on the 17th of April, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+      "answer": "Benjamin Franklin died on April 17, 1790, after suffering chest pain and difficulty breathing [d01-0622, d06-0174]. Before his death, he wished to \"die in a decent manner\" and his last known words were \"A dying man can do nothing easy [d01-0622, d04-0654]. His funeral was attended by a great procession and many citizens, and Congress voted to wear mourning for one month [d01-0622]. He is remembered with great respect and tributes from many groups, having risen from humble beginnings to high station, wealth, and distinction through prudence and honesty [d01-0622, d04-0654, d06-0174].",
       "cited_ids": [
+        "d01-0622",
         "d06-0174",
-        "d06-0175",
-        "d04-0729"
+        "d04-0654"
       ],
-      "display": "Benjamin Franklin died quietly at about eleven o'clock at night on the 17th of April, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729]."
+      "reason": null,
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
+      "display": "Benjamin Franklin died on April 17, 1790, after suffering chest pain and difficulty breathing [d01-0622, d06-0174]. Before his death, he wished to \"die in a decent manner\" and his last known words were \"A dying man can do nothing easy [d01-0622, d04-0654]. His funeral was attended by a great procession and many citizens, and Congress voted to wear mourning for one month [d01-0622]. He is remembered with great respect and tributes from many groups, having risen from humble beginnings to high station, wealth, and distinction through prudence and honesty [d01-0622, d04-0654, d06-0174]."
     }
   ],
-  "story": "Benjamin Franklin was born on January 6, 1706, in Boston, Massachusetts, where his father lived directly opposite the Old South Church in Milk Street [d02-0018, d04-0010]. His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011]. Benjamin was the youngest son in a large family of seventeen children, and his upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d06-0008, d01-0023]. His formal schooling was limited; he attended Boston Grammar School for less than a year, becoming head of his class, but much of his education was self-imparted [d04-0268, d06-0008]. \n\nAt about the age of twelve, Benjamin was apprenticed to his older brother James, who was a printer, and this apprenticeship lasted nine years [d01-0025, d02-0028]. Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d06-0048, d02-0028]. Franklin was highly regarded as a printer by his peers and considered almost the patron saint of the printing craft [d05-0054, d04-0003]. He was also known for his practical ingenuity and love of reading [d02-0031, d04-0001]. \n\nFranklin married Deborah Read on September 1, 1730; she accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040, d01-0041]. Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0267]. \n\nFranklin had several close friends and companions, including his early youth friend John Collins from Boston, clerks Joseph Watson and Charles Osborne, and Abel James, a Quaker involved in Pennsylvania's silk manufacturing society [d04-0633, d02-0087, d04-0671]. He also had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048]. Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0273, d02-0012]. \n\nHe was as much at home in London as in Philadelphia, spending about twenty-six years of his life abroad and crossing the Atlantic no less than eight times [d04-0018, d06-0171]. Franklin completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437]. \n\nFranklin died quietly at about eleven o'clock at night on April 17, 1790, having reached an honored and happy old age [d06-0174]. He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175]. His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+  "story": "Benjamin Franklin was born on January 6, 1706, old style (January 17, 1706, new style), in Boston, Massachusetts, in a house on Milk Street opposite the Old South Church, on the morning of a Sabbath day [d01-0021, d02-0018]. His father, Josiah Franklin, had emigrated from Banbury, England, and was an intelligent and industrious man guided by high moral and religious principles; he worked as a tallow-chandler and soap-boiler, and Benjamin assisted him in this trade until about twelve years old [d02-0016, d01-0023, d06-0011]. Benjamin's mother was from the Folger family, from whom he inherited humane and liberal traits [d01-0022]. He grew up in a large family with sixteen siblings, including brothers James, John, Peter, and Josiah, and sisters Lydia and Anne Harris [d02-0028, d04-0540, d04-0546].\n\nBenjamin's father initially intended him for the church and sent him to grammar school at age eight, where he quickly became a top student, but his formal education was cut short due to the family's limited means [d01-0022, d06-0008]. After attending a school for writing and arithmetic, he left at ten to help his father in the tallow-chandler business, which he disliked [d06-0009]. At about eleven, he was apprenticed to his brother James in the printing business for nine years, reluctantly accepting this path [d02-0028]. During his apprenticeship, Franklin devoted himself assiduously to learning the printing trade, often sacrificing leisure and sleep [d02-0030]. He continued his education through self-study and extensive reading while working as an apprentice [d06-0008, d02-0030, d05-0860].\n\nFranklin's first job was helping his father in the tallow-chandler business, cutting wicks, running errands, and tending the shop [d06-0009, d02-0028]. He briefly tried the cutler's trade but abandoned it due to apprenticeship terms [d02-0028]. Later, he apprenticed with his brother James as a printer, which he pursued for three years [d02-0028, d02-0030]. At age twenty, Franklin secretly escaped his apprenticeship by boarding a vessel to New York at night, using a false story to conceal his departure; his passage was swift and pleasant [d02-0056, d02-0111]. He then embarked on a long voyage to Philadelphia aboard the ship Berkshire, which took eighty days, keeping a diary filled with witty and wise remarks during the journey [d02-0111].\n\nIn his youth, Franklin made a serious mistake when he took advantage of a woman's company and attempted liberties which she repulsed, causing a breach with his friend Ralph that lasted thirty-five years [d02-0106]. He also faced difficulties during his apprenticeship when a political piece he wrote offended the Assembly, leading to his brother's imprisonment for refusing to reveal Franklin as the author [d06-0023]. Around age twenty-one, Franklin suffered from pleurisy, a serious illness that nearly killed him [d05-0103].\n\nFranklin had six children with Deborah, including Francis Folger, who died at about four years old, and Sarah Franklin [d02-0017, d04-0469, d02-0267]. Sarah had seven children, including Benjamin Franklin Bache and Richard Bache [d04-0516].\n\nFranklin lived primarily in Philadelphia after moving from Boston, frequently visiting New York, and spent about twenty-six years living in England and France combined [d04-0014, d04-0018]. Early in 1777, he took up residence at Passy in France, where he remained during his stay in the country [d02-0421, d06-0171]. He also traveled to Scotland, Ireland, and other Continental countries during his life [d04-0018].\n\nAmong Franklin's inventions was the Franklin stove, also called the Pennsylvania fireplace, designed for better warming of rooms while saving fuel [d01-0069]. He also completed the musical instrument called the harmonica [d03-0437] and discovered the identity of lightning and electricity using simple materials [d05-0735]. Franklin was known for his ingenuity in local improvements, such as getting pavements laid, organizing street sweeping and lighting, and he valued the habit of integrity, which helped him gain influence despite being a poor speaker [d01-0078, d04-0053].\n\nFranklin was known for his humor and wit, often using jokes and humorous writings to entertain and make points, such as his witty remarks in Congress and amusing newspaper anecdotes [d02-0371, d01-0214, d04-0625]. He had close friends throughout his life, including early companions John Collins, Joseph Watson, Charles Osborne, and James Ralph, and later intimate friends such as Mary \"Polly\" Stevenson, Mrs. Paschal, Thomas Mifflin, William Hunter, Jean Holker and his wife, John Joseph Monthieu, Turgot, Doctor Benjamin Rush, Charles Carroll of Carrollton, and Samuel Chase [d02-0087, d04-0736, d04-1062, d04-0633, d04-0630].\n\nOne of the hardest experiences Franklin endured was a severe and cruel journey to Montreal in the spring of 1776, which was very taxing for a man of his age and nearly cost him his life due to fatigue and exposure [d01-0323]. He also narrowly escaped shipwreck off Falmouth Harbor on his second voyage to England and faced dangerous conditions when arriving in a deserted New York expected to be bombarded [d04-0198, d02-0384].\n\nBenjamin Franklin died on April 17, 1790, after suffering chest pain and difficulty breathing; his last known words were \"A dying man can do nothing easy\" [d01-0622, d04-0654]. His funeral was attended by a great procession and many citizens, and Congress voted to wear mourning for one month [d01-0622]. He is remembered with great respect and tributes from many groups, having risen from humble beginnings to high station, wealth, and distinction through prudence and honesty [d01-0622, d04-0654, d06-0174].",
   "verification": {
     "checks": [
       {
-        "sentence": "Benjamin Franklin was born on January 6, 1706, in Boston, Massachusetts, where his father lived directly opposite the Old South Church in Milk Street [d02-0018, d04-0010].",
+        "sentence": "Benjamin Franklin was born on January 6, 1706, old style (January 17, 1706, new style), in Boston, Massachusetts, in a house on Milk Street opposite the Old South Church, on the morning of a Sabbath day [d01-0021, d02-0018].",
         "cited_ids": [
-          "d02-0018",
-          "d04-0010"
+          "d01-0021",
+          "d02-0018"
         ],
         "verdict": "supported",
         "support": 1.0,
@@ -390,70 +478,80 @@
         "flagged": false
       },
       {
-        "sentence": "His father, Josiah Franklin, was a tallow-chandler by trade and was described as a worthy, intelligent, and industrious man guided by high moral and religious principles [d02-0016, d06-0011].",
+        "sentence": "His father, Josiah Franklin, had emigrated from Banbury, England, and was an intelligent and industrious man guided by high moral and religious principles; he worked as a tallow-chandler and soap-boiler, and Benjamin assisted him in this trade until about twelve years old [d02-0016, d01-0023, d06-0011].",
         "cited_ids": [
           "d02-0016",
+          "d01-0023",
           "d06-0011"
         ],
         "verdict": "supported",
-        "support": 0.875,
+        "support": 0.96,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "Benjamin was the youngest son in a large family of seventeen children, and his upbringing took place in a rough, new village where childhood was short and practical concerns dominated [d06-0008, d01-0023].",
+        "sentence": "Benjamin's mother was from the Folger family, from whom he inherited humane and liberal traits [d01-0022].",
         "cited_ids": [
-          "d06-0008",
-          "d01-0023"
+          "d01-0022"
         ],
         "verdict": "supported",
-        "support": 0.556,
+        "support": 0.75,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "His formal schooling was limited; he attended Boston Grammar School for less than a year, becoming head of his class, but much of his education was self-imparted [d04-0268, d06-0008].",
+        "sentence": "He grew up in a large family with sixteen siblings, including brothers James, John, Peter, and Josiah, and sisters Lydia and Anne Harris [d02-0028, d04-0540, d04-0546].",
         "cited_ids": [
-          "d04-0268",
+          "d02-0028",
+          "d04-0540",
+          "d04-0546"
+        ],
+        "verdict": "supported",
+        "support": 0.8,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Benjamin's father initially intended him for the church and sent him to grammar school at age eight, where he quickly became a top student, but his formal education was cut short due to the family's limited means [d01-0022, d06-0008].",
+        "cited_ids": [
+          "d01-0022",
           "d06-0008"
         ],
         "verdict": "supported",
-        "support": 0.667,
+        "support": 0.591,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "At about the age of twelve, Benjamin was apprenticed to his older brother James, who was a printer, and this apprenticeship lasted nine years [d01-0025, d02-0028].",
+        "sentence": "After attending a school for writing and arithmetic, he left at ten to help his father in the tallow-chandler business, which he disliked [d06-0009].",
         "cited_ids": [
-          "d01-0025",
+          "d06-0009"
+        ],
+        "verdict": "supported",
+        "support": 0.833,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "At about eleven, he was apprenticed to his brother James in the printing business for nine years, reluctantly accepting this path [d02-0028].",
+        "cited_ids": [
           "d02-0028"
         ],
         "verdict": "supported",
-        "support": 1.0,
+        "support": 0.727,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "Later, Franklin procured employment at an extensive printing house where he worked for nearly a year [d06-0048, d02-0028].",
+        "sentence": "During his apprenticeship, Franklin devoted himself assiduously to learning the printing trade, often sacrificing leisure and sleep [d02-0030].",
         "cited_ids": [
-          "d06-0048",
-          "d02-0028"
-        ],
-        "verdict": "supported",
-        "support": 0.9,
-        "missing_terms": [],
-        "note": "",
-        "flagged": false
-      },
-      {
-        "sentence": "Franklin was highly regarded as a printer by his peers and considered almost the patron saint of the printing craft [d05-0054, d04-0003].",
-        "cited_ids": [
-          "d05-0054",
-          "d04-0003"
+          "d02-0030"
         ],
         "verdict": "supported",
         "support": 0.545,
@@ -462,10 +560,80 @@
         "flagged": false
       },
       {
-        "sentence": "He was also known for his practical ingenuity and love of reading [d02-0031, d04-0001].",
+        "sentence": "He continued his education through self-study and extensive reading while working as an apprentice [d06-0008, d02-0030, d05-0860].",
         "cited_ids": [
-          "d02-0031",
-          "d04-0001"
+          "d06-0008",
+          "d02-0030",
+          "d05-0860"
+        ],
+        "verdict": "supported",
+        "support": 0.875,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin's first job was helping his father in the tallow-chandler business, cutting wicks, running errands, and tending the shop [d06-0009, d02-0028].",
+        "cited_ids": [
+          "d06-0009",
+          "d02-0028"
+        ],
+        "verdict": "supported",
+        "support": 0.857,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He briefly tried the cutler's trade but abandoned it due to apprenticeship terms [d02-0028].",
+        "cited_ids": [
+          "d02-0028"
+        ],
+        "verdict": "supported",
+        "support": 0.375,
+        "missing_terms": [],
+        "note": "judge: supported (lexical: 38% of content words found in cited chunks)",
+        "flagged": false
+      },
+      {
+        "sentence": "Later, he apprenticed with his brother James as a printer, which he pursued for three years [d02-0028, d02-0030].",
+        "cited_ids": [
+          "d02-0028",
+          "d02-0030"
+        ],
+        "verdict": "supported",
+        "support": 0.75,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "At age twenty, Franklin secretly escaped his apprenticeship by boarding a vessel to New York at night, using a false story to conceal his departure; his passage was swift and pleasant [d02-0056, d02-0111].",
+        "cited_ids": [
+          "d02-0056",
+          "d02-0111"
+        ],
+        "verdict": "supported",
+        "support": 0.842,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He then embarked on a long voyage to Philadelphia aboard the ship Berkshire, which took eighty days, keeping a diary filled with witty and wise remarks during the journey [d02-0111].",
+        "cited_ids": [
+          "d02-0111"
+        ],
+        "verdict": "supported",
+        "support": 0.588,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "In his youth, Franklin made a serious mistake when he took advantage of a woman's company and attempted liberties which she repulsed, causing a breach with his friend Ralph that lasted thirty-five years [d02-0106].",
+        "cited_ids": [
+          "d02-0106"
         ],
         "verdict": "supported",
         "support": 0.6,
@@ -474,62 +642,20 @@
         "flagged": false
       },
       {
-        "sentence": "Franklin married Deborah Read on September 1, 1730; she accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040, d01-0041].",
+        "sentence": "He also faced difficulties during his apprenticeship when a political piece he wrote offended the Assembly, leading to his brother's imprisonment for refusing to reveal Franklin as the author [d06-0023].",
         "cited_ids": [
-          "d01-0040",
-          "d01-0041"
+          "d06-0023"
         ],
         "verdict": "supported",
-        "support": 0.667,
-        "missing_terms": [
-          "Deborah",
-          "Temple"
-        ],
-        "note": "judge: supported (lexical: 67% of content words found in cited chunks; not in cited chunks: Deborah, Temple)",
-        "flagged": false
-      },
-      {
-        "sentence": "Franklin's daughter Sarah was noted as beautiful, and there were attempts to arrange marriages for both Sarah and William Temple Franklin, but these plans failed [d04-0469, d02-0267].",
-        "cited_ids": [
-          "d04-0469",
-          "d02-0267"
-        ],
-        "verdict": "supported",
-        "support": 0.714,
+        "support": 0.533,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "Franklin had several close friends and companions, including his early youth friend John Collins from Boston, clerks Joseph Watson and Charles Osborne, and Abel James, a Quaker involved in Pennsylvania's silk manufacturing society [d04-0633, d02-0087, d04-0671].",
+        "sentence": "Around age twenty-one, Franklin suffered from pleurisy, a serious illness that nearly killed him [d05-0103].",
         "cited_ids": [
-          "d04-0633",
-          "d02-0087",
-          "d04-0671"
-        ],
-        "verdict": "supported",
-        "support": 0.84,
-        "missing_terms": [],
-        "note": "",
-        "flagged": false
-      },
-      {
-        "sentence": "He also had a close companion named Ralph who accompanied him to London and was considered inseparable [d06-0048].",
-        "cited_ids": [
-          "d06-0048"
-        ],
-        "verdict": "supported",
-        "support": 0.625,
-        "missing_terms": [],
-        "note": "",
-        "flagged": false
-      },
-      {
-        "sentence": "Franklin acknowledged the malice of his adversaries but considered their attacks mostly harmless [d04-0666, d05-0273, d02-0012].",
-        "cited_ids": [
-          "d04-0666",
-          "d05-0273",
-          "d02-0012"
+          "d05-0103"
         ],
         "verdict": "supported",
         "support": 0.5,
@@ -538,23 +664,132 @@
         "flagged": false
       },
       {
-        "sentence": "He was as much at home in London as in Philadelphia, spending about twenty-six years of his life abroad and crossing the Atlantic no less than eight times [d04-0018, d06-0171].",
+        "sentence": "On September 1, 1730, Franklin married Deborah Read in a sensible, comfortable, and satisfactory union; she was a good and faithful helpmate who assisted him much, and they mutually endeavored to make each other happy [d01-0040, d04-0412].",
         "cited_ids": [
-          "d04-0018",
-          "d06-0171"
+          "d01-0040",
+          "d04-0412"
+        ],
+        "verdict": "weak",
+        "support": 0.895,
+        "missing_terms": [
+          "Read"
+        ],
+        "note": "89% of content words found in cited chunks; not in cited chunks: Read",
+        "flagged": true
+      },
+      {
+        "sentence": "Deborah accepted and raised Franklin's illegitimate son, William Temple Franklin, as her own [d01-0040].",
+        "cited_ids": [
+          "d01-0040"
+        ],
+        "verdict": "weak",
+        "support": 0.556,
+        "missing_terms": [
+          "Temple"
+        ],
+        "note": "56% of content words found in cited chunks; not in cited chunks: Temple",
+        "flagged": true
+      },
+      {
+        "sentence": "Franklin had six children with Deborah, including Francis Folger, who died at about four years old, and Sarah Franklin [d02-0017, d04-0469, d02-0267].",
+        "cited_ids": [
+          "d02-0017",
+          "d04-0469",
+          "d02-0267"
         ],
         "verdict": "supported",
-        "support": 0.929,
+        "support": 0.923,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "Franklin completed the musical instrument known as the harmonica, which gained him popularity in London [d04-0001, d05-0855, d03-0437].",
+        "sentence": "Sarah had seven children, including Benjamin Franklin Bache and Richard Bache [d04-0516].",
         "cited_ids": [
-          "d04-0001",
-          "d05-0855",
-          "d03-0437"
+          "d04-0516"
+        ],
+        "verdict": "supported",
+        "support": 0.889,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin lived primarily in Philadelphia after moving from Boston, frequently visiting New York, and spent about twenty-six years living in England and France combined [d04-0014, d04-0018].",
+        "cited_ids": [
+          "d04-0014",
+          "d04-0018"
+        ],
+        "verdict": "supported",
+        "support": 0.889,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Early in 1777, he took up residence at Passy in France, where he remained during his stay in the country [d02-0421, d06-0171].",
+        "cited_ids": [
+          "d02-0421",
+          "d06-0171"
+        ],
+        "verdict": "supported",
+        "support": 0.889,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He also traveled to Scotland, Ireland, and other Continental countries during his life [d04-0018].",
+        "cited_ids": [
+          "d04-0018"
+        ],
+        "verdict": "supported",
+        "support": 0.833,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Among Franklin's inventions was the Franklin stove, also called the Pennsylvania fireplace, designed for better warming of rooms while saving fuel [d01-0069].",
+        "cited_ids": [
+          "d01-0069"
+        ],
+        "verdict": "supported",
+        "support": 0.857,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He also completed the musical instrument called the harmonica [d03-0437] and discovered the identity of lightning and electricity using simple materials [d05-0735].",
+        "cited_ids": [
+          "d03-0437",
+          "d05-0735"
+        ],
+        "verdict": "supported",
+        "support": 0.667,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin was known for his ingenuity in local improvements, such as getting pavements laid, organizing street sweeping and lighting, and he valued the habit of integrity, which helped him gain influence despite being a poor speaker [d01-0078, d04-0053].",
+        "cited_ids": [
+          "d01-0078",
+          "d04-0053"
+        ],
+        "verdict": "supported",
+        "support": 0.667,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Franklin was known for his humor and wit, often using jokes and humorous writings to entertain and make points, such as his witty remarks in Congress and amusing newspaper anecdotes [d02-0371, d01-0214, d04-0625].",
+        "cited_ids": [
+          "d02-0371",
+          "d01-0214",
+          "d04-0625"
         ],
         "verdict": "supported",
         "support": 0.556,
@@ -563,47 +798,103 @@
         "flagged": false
       },
       {
-        "sentence": "Franklin died quietly at about eleven o'clock at night on April 17, 1790, having reached an honored and happy old age [d06-0174].",
+        "sentence": "He had close friends throughout his life, including early companions John Collins, Joseph Watson, Charles Osborne, and James Ralph, and later intimate friends such as Mary \"Polly\" Stevenson, Mrs. Paschal, Thomas Mifflin, William Hunter, Jean Holker and his wife, John Joseph Monthieu, Turgot, Doctor Benjamin Rush, Charles Carroll of Carrollton, and Samuel Chase [d02-0087, d04-0736, d04-1062, d04-0633, d04-0630].",
         "cited_ids": [
-          "d06-0174"
+          "d02-0087",
+          "d04-0736",
+          "d04-1062",
+          "d04-0633",
+          "d04-0630"
         ],
         "verdict": "supported",
-        "support": 0.929,
-        "missing_terms": [
-          "17"
-        ],
-        "note": "judge: supported (lexical: 93% of content words found in cited chunks; not in cited chunks: 17)",
-        "flagged": false
-      },
-      {
-        "sentence": "He is remembered with respect and gratitude for his public services and admiration for his philosophical discoveries, with his name living among the few great men who have conferred enduring benefits on mankind [d06-0175].",
-        "cited_ids": [
-          "d06-0175"
-        ],
-        "verdict": "supported",
-        "support": 0.824,
+        "support": 0.905,
         "missing_terms": [],
         "note": "",
         "flagged": false
       },
       {
-        "sentence": "His fame is widespread in America, with many places and institutions named after him, and numerous busts, portraits, and monuments dedicated to his memory [d04-0729].",
+        "sentence": "Franklin faced rivals and enemies, including Lee and Izard, and political opponents such as Dr. William Smith and the Proprietary Party in Pennsylvania, who directed many attacks against him [d04-0665, d04-0666, d05-0266].",
         "cited_ids": [
-          "d04-0729"
+          "d04-0665",
+          "d04-0666",
+          "d05-0266"
+        ],
+        "verdict": "weak",
+        "support": 0.688,
+        "missing_terms": [
+          "Pennsylvania"
+        ],
+        "note": "69% of content words found in cited chunks; not in cited chunks: Pennsylvania",
+        "flagged": true
+      },
+      {
+        "sentence": "One of the hardest experiences Franklin endured was a severe and cruel journey to Montreal in the spring of 1776, which was very taxing for a man of his age and nearly cost him his life due to fatigue and exposure [d01-0323].",
+        "cited_ids": [
+          "d01-0323"
         ],
         "verdict": "supported",
-        "support": 0.5,
+        "support": 0.684,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He also narrowly escaped shipwreck off Falmouth Harbor on his second voyage to England and faced dangerous conditions when arriving in a deserted New York expected to be bombarded [d04-0198, d02-0384].",
+        "cited_ids": [
+          "d04-0198",
+          "d02-0384"
+        ],
+        "verdict": "supported",
+        "support": 0.765,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "Benjamin Franklin died on April 17, 1790, after suffering chest pain and difficulty breathing; his last known words were \"A dying man can do nothing easy\" [d01-0622, d04-0654].",
+        "cited_ids": [
+          "d01-0622",
+          "d04-0654"
+        ],
+        "verdict": "supported",
+        "support": 0.889,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "His funeral was attended by a great procession and many citizens, and Congress voted to wear mourning for one month [d01-0622].",
+        "cited_ids": [
+          "d01-0622"
+        ],
+        "verdict": "supported",
+        "support": 0.9,
+        "missing_terms": [],
+        "note": "",
+        "flagged": false
+      },
+      {
+        "sentence": "He is remembered with great respect and tributes from many groups, having risen from humble beginnings to high station, wealth, and distinction through prudence and honesty [d01-0622, d04-0654, d06-0174].",
+        "cited_ids": [
+          "d01-0622",
+          "d04-0654",
+          "d06-0174"
+        ],
+        "verdict": "supported",
+        "support": 0.714,
         "missing_terms": [],
         "note": "",
         "flagged": false
       }
     ],
-    "traced_ratio": 1.0,
-    "flagged_count": 0,
-    "sentence_count": 18
+    "traced_ratio": 0.914,
+    "flagged_count": 3,
+    "sentence_count": 35
   },
   "error": null,
   "kind": "story",
-  "created_at": "2026-11-13T15:40:46.370867+00:00",
-  "finished_at": "2026-11-13T15:41:38.259774+00:00"
+  "question": null,
+  "comparison_id": null,
+  "created_at": "2026-11-26T16:16:11.823014+00:00",
+  "finished_at": "2026-11-26T16:17:15.141925+00:00"
 }

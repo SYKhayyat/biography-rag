@@ -1,6 +1,6 @@
 {
-  "run_id": "refe36b018c",
-  "corpus_id": "benjamin-franklin-209336",
+  "run_id": "r801f1bc932",
+  "corpus_id": "benjamin-franklin-3ceca1",
   "person": "Benjamin Franklin",
   "provider": "openai",
   "model": "gpt-4.1-mini",
@@ -12,15 +12,18 @@
       "query_id": 0,
       "question": "What is shown on the back of the Franklin half dollar first minted in 1948?",
       "retrieved_ids": [
-        "d04-0729",
-        "d01-0018",
-        "d06-0057",
-        "d02-0012",
-        "d05-0537",
-        "d02-0000"
+        "d03-0072",
+        "d05-0536",
+        "d02-0136",
+        "d03-0156",
+        "d02-0338",
+        "d05-0663"
       ],
       "answer": null,
       "cited_ids": [],
+      "reason": "not_in_sources",
+      "answered_by": "gpt-4.1-mini",
+      "failed": false,
       "display": "Not in the sources."
     }
   ],
@@ -33,6 +36,8 @@
   },
   "error": null,
   "kind": "ask",
-  "created_at": "2026-11-13T15:41:50.310733+00:00",
-  "finished_at": "2026-11-13T15:41:52.309039+00:00"
+  "question": "What is shown on the back of the Franklin half dollar first minted in 1948?",
+  "comparison_id": null,
+  "created_at": "2026-11-26T16:17:21.696184+00:00",
+  "finished_at": "2026-11-26T16:17:28.995859+00:00"
 }

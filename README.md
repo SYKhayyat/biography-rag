@@ -11,25 +11,25 @@ You upload pages about one person. The app asks 20 fixed questions about them an
 
 Works for any person: nothing in the code or prompts knows about Franklin.
 
-## Results (Benjamin Franklin, 6 biographies ≈ 2,400 pages, 4,178 chunks)
+## Results (Benjamin Franklin, 6 biographies ≈ 2,400 pages, 4,176 chunks)
+
+Run `rc0b15bed96`, the artefacts in [`logs/submission/`](logs/submission/):
 
 | | |
 |---|---|
-| Questions answered | 19 / 20 (the 20th: "not in the sources") |
-| Story sentences traced to a chunk id | 18 / 18 (100%) |
-| Sentences flagged by the verifier | 0 |
+| Questions answered | 19 / 20 (Q16 "best known for": the quotes did not answer it; the audit lists this question as one the check rejects non-deterministically) |
+| Story sentences traced to a chunk | 32 / 35 (91%) |
+| Sentences flagged and dropped from the story | 3 (all lexical `weak`: wording or a name absent from the cited passages) |
 | Canaries ("Whose portrait is on the $100 bill?" and 2 more) | 3 / 3 answered "Not in the sources." |
 
-The manual review found three sentences the automated checks passed:
+The manual review of an earlier run found three sentences the automated checks passed:
 - **One misattribution:** son and grandson were merged.
 - **Two weakly supported claims.**
 
-Details and the run history are in [`findings.md`](logs/submission/findings.md).
-
-The table above was measured before the retrieval changes described under [Retrieval](#retrieval)
-(context in the embedding text, the cosine floor, windows, the per-book cap). Re-run
-`scripts/run_submission.py` for numbers under the current code; a corpus ingested earlier must be
-re-uploaded, since passages now carry a book/chapter context line and a stored index-page density.
+Details and the run history are in [`findings.md`](logs/submission/findings.md). The retrieval
+changes described under [Retrieval](#retrieval) were measured on this same corpus — see
+[Measured](#measured) — and the per-question comparison of the old and new retrieval settings is in
+[`AUDIT.md`](AUDIT.md).
 
 ## How it works
 
@@ -43,7 +43,7 @@ upload (.txt .md .html .pdf)
 for each of 20 questions, with {person} filled in:
   retrieve   hybrid: pgvector cosine + Postgres full-text, fused by reciprocal rank (top 6)
              cosine floor and index-page filter run in SQL, before the row limit
-             at most MAX_PER_DOC passages per book; each hit widened to its neighbours
+             a hit that opens on a pronoun carries a [...before] seam of the sentence before it
              optional: a rerank call over the pool, and a written-out answer (HyDE) to search
   answer     model must reply  EVIDENCE: "<exact quote ≤40 words>" [chunk-id] …  then  ANSWER:
   gate       deterministic: each quote must align with the chunk it cites
@@ -81,13 +81,16 @@ Everything below is measureable per corpus and every knob is an environment vari
 - **Keyword search is two-stage.** The OR query alone lets one common word ("family", "born")
   carry a hit, so passages holding *every* term are ranked first, then the rest by `ts_rank_cd`,
   then the shorter passage.
-- **No book fills the context.** `MAX_PER_DOC` (default 2, never below an even share of `k`) keeps
-  six biographies of one person from answering with the same anecdote told six ways.
-- **Each hit is widened to its neighbours** (`NEIGHBOUR_RADIUS`, default 1) before the model reads
-  it. The answer gate demands verbatim quotes, and a pronoun whose antecedent sits in the previous
-  chunk used to make an answerable question fail. The citation id still points at the passage
-  itself; the gate checks quotes against the window. Small chunks with wide parents — set
-  `CHUNK_SIZE=400 NEIGHBOUR_RADIUS=3` for the classic small-to-big arrangement.
+- **A hit that opens on a pronoun carries a seam of what came before it.** "He was then bound
+  apprentice..." is unreadable, and unquotable, without the sentence before it — and because the
+  gate demands verbatim quotes, that used to make an answerable question fail. A whole-sentence
+  tail (`NEIGHBOUR_RADIUS=1`, `SEAM_CHARS=240`), prefixed as `[...before]`, and **only** for
+  passages that open on *he/she/it/they/this/...*; the citation id still points at the passage
+  itself. Seams are not free: widening every passage to its full neighbours tripled the prompt and
+  answered *fewer* questions.
+- **No book fills the context** — `MAX_PER_DOC`, default **0 (off)**. The cap is there for corpora
+  with several books that retell the same events, but measured on six Franklin biographies it
+  answered no more questions than no cap and lowered the traced ratio, so it ships off.
 - **The book and chapter travel with the passage.** Each chunk carries `context` ("Familiar Letters
   — Paris"), which is prefixed to the text for embedding and shown beside the snippet in the
   prompt, so the model can tell a son from a grandson and one witness from another. Quotes are
@@ -99,6 +102,22 @@ Everything below is measureable per corpus and every knob is an environment vari
   - `EXPAND_QUERIES=true` writes a hypothetical biography passage (HyDE) and two rephrasings. The
     invented text is a **query only**: it never reaches the answer prompt and is never evidence.
 
+
+### Measured
+
+One corpus (4,176 passages, 6 biographies), one model (`gpt-4.1-mini`), one run per row, story only:
+
+| retrieval settings | answered | traced | flagged | prompt | quotes found |
+|---|---|---|---|---|---|
+| everything off (the old behaviour) | 19/20 | 92% | 3 | 9.3k | 66/73 |
+| cosine floor 0.25 only | 19/20 | 91% | 2 | 9.3k | 69/79 |
+| per-book cap 2 only | 19/20 | 85% | 5 | 9.3k | 67/70 |
+| floor + cap + a seam on **every** passage | 14/20 | 98% | 1 | 12.3k | 65/73 |
+| **floor + pronoun seams (the defaults)** | **20/20** | **93%** | **2** | 9.6k | 72/76 |
+
+One run per configuration and the sufficiency check is non-deterministic (see `AUDIT.md` #3), so a
+one-question difference is noise. The 14/20 row is not: a seam on every passage, cut at a
+character offset, made passages start with fragments like "e sixteen sons and daughters".
 
 ### Why the gate and the check
 
