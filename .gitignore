@@ -10,3 +10,7 @@ corpus/raw/
 logs/*.jsonl
 !logs/submission/
 supabase/
+
+# Downloaded test corpora (scripts/fetch_corpus.py, scripts/fetch_extra_corpus.py)
+corpus/raw*/
+logs/checks/

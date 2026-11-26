@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from typing import Any
 
@@ -32,10 +33,15 @@ class OpenAIEmbedder:
 
 class LocalEmbedder:
     """fastembed (ONNX runtime) on CPU. Installed with the ``local`` extra; the model is
-    downloaded on first use and imported lazily so the default deploy never pays for it."""
+    downloaded on first use and imported lazily so the default deploy never pays for it.
 
-    def __init__(self, model: str = "BAAI/bge-small-en-v1.5") -> None:
+    ``threads`` defaults to onnxruntime's own choice, which on some builds is far slower than a
+    fixed small number; ``LOCAL_EMBED_THREADS=4`` is worth a measurement on a new machine.
+    """
+
+    def __init__(self, model: str = "BAAI/bge-small-en-v1.5", threads: int | None = None) -> None:
         self._model_name = model
+        self._threads = threads
         self._model: Any = None
 
     @property
@@ -48,7 +54,8 @@ class LocalEmbedder:
                 from fastembed import TextEmbedding
             except ImportError as exc:  # pragma: no cover - depends on install
                 raise RuntimeError("local embeddings need the extra: uv sync --extra local") from exc
-            self._model = TextEmbedding(model_name=self._model_name)
+            threads = self._threads or int(os.environ.get("LOCAL_EMBED_THREADS", "0")) or None
+            self._model = TextEmbedding(model_name=self._model_name, threads=threads)
         return self._model
 
     def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:

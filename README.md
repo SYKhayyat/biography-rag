@@ -103,6 +103,44 @@ Everything below is measureable per corpus and every knob is an environment vari
     invented text is a **query only**: it never reaches the answer prompt and is never evidence.
 
 
+### Measured on two corpora the code never saw
+
+The Franklin numbers below come from six books about one person. To check that the defaults
+generalise, `scripts/check_retrieval.py` asks three answerable questions and one canary of three
+corpora under both settings, with **local embeddings and a free chat provider, so it costs
+nothing**:
+
+```bash
+uv run python scripts/fetch_corpus.py && uv run python scripts/fetch_extra_corpus.py
+uv run python scripts/check_retrieval.py --provider gemini        # free tier + local bge-small
+```
+
+| corpus | books / passages | setting | answered | canary refused | correct |
+|---|---|---|---|---|---|
+| Franklin (biographies) | 6 / 4,176 | old | 3/4 | yes | 4/4 |
+| | | **new** | 3/4 | yes | **4/4** |
+| Douglass (3 memoirs + 1 biography) | 4 / 2,650 | old | 2/4 | yes | 3/4 |
+| | | **new** | **3/4** | yes | **4/4** |
+| Lincoln (4 biographies) | 4 / 3,102 | old | 2/4 | yes | 3/4 |
+| | | **new** | 2/4 | yes | 3/4 |
+
+"answered" counts the four questions; "correct" reads the answers against a keyword list (so
+`Miss Read` scores as `Deborah Read`, and the canary counts when it is refused).
+
+What it says:
+
+- **The defaults barely change anything, which is the point.** On the Lincoln and Franklin
+  questions the two settings retrieve the *same* passage ids: a cosine floor of 0.25 sits below the
+  pool, and a seam is added only to passages that open on a pronoun.
+- **The one improvement is a real one.** Douglass's "name of his wife" was rejected by the check as
+  insufficient evidence under the old settings and answered under the new ones.
+- **One shared, unexplained miss** (filed as a task): "Where was Abraham Lincoln assassinated?"
+  answers "Not in the sources" on both settings, although the corpus mentions Ford's Theatre seven
+  times. The retrieved six passages contain no mention of it — a recall miss, not a floor or seam
+  effect. Retrieval, not the gate, is where that has to be fixed.
+- **All three canaries refused**, on both settings: the "$100 bill", the Frederick Douglass
+  Memorial Bridge (2021) and the Lincoln cent (1959) facts are all absent from the books.
+
 ### Measured
 
 One corpus (4,176 passages, 6 biographies), one model (`gpt-4.1-mini`), one run per row, story only:
