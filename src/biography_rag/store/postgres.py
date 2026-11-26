@@ -16,7 +16,8 @@ from psycopg_pool import ConnectionPool
 
 from biography_rag.domain import Chunk, Corpus, StoryRun
 from biography_rag.serialization import corpus_from_dict, corpus_to_dict, run_from_dict, run_to_dict
-from biography_rag.text import STOPWORDS, words
+from biography_rag.store.base import NO_FILTERS, SearchFilters
+from biography_rag.text import STOPWORDS, number_density, words
 
 SCHEMA = """
 create extension if not exists vector;
@@ -36,11 +37,17 @@ create table if not exists chunks (
     doc_id    text not null,
     ordinal   int  not null,
     text      text not null,
+    context   text not null default '',
+    num_density real not null default 0,
     embedding vector not null,
     tsv       tsvector generated always as (to_tsvector('english', text)) stored,
     primary key (corpus_id, chunk_id)
 );
+-- Added after the first release; existing rows keep the defaults above.
+alter table chunks add column if not exists context text not null default '';
+alter table chunks add column if not exists num_density real not null default 0;
 create index if not exists chunks_tsv on chunks using gin (tsv);
+create index if not exists chunks_doc on chunks (corpus_id, doc_id, ordinal);
 
 create table if not exists runs (
     run_id     text primary key,
@@ -114,10 +121,21 @@ class PostgresCorpusRepository:
             conn.execute("delete from corpora where corpus_id = %s", (corpus_id,))
 
 
+def _query(text: str, operator: str) -> str:
+    """tsquery text joining the content terms with ``operator``; '' when nothing is left."""
+    terms = {w for w in (t.replace("'", "") for t in words(text)) if w.isalnum() and w not in STOPWORDS and len(w) > 2}
+    return f" {operator} ".join(sorted(terms))
+
+
 def _or_query(text: str) -> str:
     """'Who were his siblings?' -> 'siblings' ; terms OR-ed so partial matches still rank."""
-    terms = {w for w in (t.replace("'", "") for t in words(text)) if w.isalnum() and w not in STOPWORDS and len(w) > 2}
-    return " | ".join(sorted(terms))
+    return _query(text, "|")
+
+
+def _and_query(text: str) -> str:
+    """The same terms AND-ed: the passages that hold every one of them, which are the ones a
+    question is usually about. The OR query then fills the tail of the list."""
+    return _query(text, "&")
 
 
 class PostgresChunkIndex:
@@ -128,47 +146,87 @@ class PostgresChunkIndex:
         if len(chunks) != len(vectors):
             raise ValueError("chunks and vectors differ in length")
         rows = [
-            (corpus_id, c.chunk_id, c.doc_id, c.ordinal, c.text, np.asarray(v, dtype=np.float32))
+            (
+                corpus_id,
+                c.chunk_id,
+                c.doc_id,
+                c.ordinal,
+                c.text,
+                c.context,
+                number_density(c.text),
+                np.asarray(v, dtype=np.float32),
+            )
             for c, v in zip(chunks, vectors, strict=True)
         ]
         with self._pool.connection() as conn, conn.transaction(), conn.cursor() as cur:
             cur.executemany(
-                "insert into chunks (corpus_id, chunk_id, doc_id, ordinal, text, embedding) "
-                "values (%s, %s, %s, %s, %s, %s)",
+                "insert into chunks (corpus_id, chunk_id, doc_id, ordinal, text, context, num_density, embedding) "
+                "values (%s, %s, %s, %s, %s, %s, %s, %s)",
                 rows,
             )
 
-    def vector_search(self, corpus_id: str, vector: Sequence[float], k: int) -> list[tuple[Chunk, float]]:
+    @staticmethod
+    def _where(filters: SearchFilters) -> tuple[str, list[Any]]:
+        """The exclusions as SQL, so the row limit counts only rows that survive them."""
+        sql, params = "", []
+        if filters.max_number_density is not None:
+            sql += " and num_density <= %s"
+            params.append(filters.max_number_density)
+        return sql, params
+
+    def vector_search(
+        self, corpus_id: str, vector: Sequence[float], k: int, filters: SearchFilters = NO_FILTERS
+    ) -> list[tuple[Chunk, float]]:
+        extra, extra_params = self._where(filters)
+        dense = np.asarray(vector, dtype=np.float32)
         with self._pool.connection() as conn:
             rows = conn.execute(
-                "select chunk_id, doc_id, ordinal, text, 1 - (embedding <=> %s) as sim "
-                "from chunks where corpus_id = %s order by embedding <=> %s limit %s",
-                (np.asarray(vector, dtype=np.float32), corpus_id, np.asarray(vector, dtype=np.float32), k),
+                f"select chunk_id, doc_id, ordinal, text, context, 1 - (embedding <=> %s) as sim "
+                f"from chunks where corpus_id = %s{extra} and 1 - (embedding <=> %s) >= %s "
+                f"order by embedding <=> %s limit %s",
+                (dense, corpus_id, *extra_params, dense, filters.min_similarity, dense, k),
             ).fetchall()
-        return [(Chunk(r[0], r[1], r[2], r[3]), float(r[4])) for r in rows]
+        return [(Chunk(r[0], r[1], r[2], r[3], r[4]), float(r[5])) for r in rows]
 
-    def keyword_search(self, corpus_id: str, text: str, k: int) -> list[tuple[Chunk, float]]:
+    def keyword_search(
+        self, corpus_id: str, text: str, k: int, filters: SearchFilters = NO_FILTERS
+    ) -> list[tuple[Chunk, float]]:
         query = _or_query(text)
         if not query:
             return []
+        whole = _and_query(text)
+        extra, extra_params = self._where(filters)
         with self._pool.connection() as conn:
             rows = conn.execute(
-                "select chunk_id, doc_id, ordinal, text, ts_rank_cd(tsv, q) as rank "
-                "from chunks, to_tsquery('english', %s) q "
-                "where corpus_id = %s and tsv @@ q order by rank desc limit %s",
-                (query, corpus_id, k),
+                "select chunk_id, doc_id, ordinal, text, context, ts_rank_cd(tsv, qany) as rank "
+                "from chunks, to_tsquery('english', %s) qall, to_tsquery('english', %s) qany "
+                f"where corpus_id = %s and tsv @@ qany{extra} "
+                "order by (tsv @@ qall) desc, rank desc, char_length(text) asc limit %s",
+                (whole, query, corpus_id, *extra_params, k),
             ).fetchall()
-        return [(Chunk(r[0], r[1], r[2], r[3]), float(r[4])) for r in rows]
+        return [(Chunk(r[0], r[1], r[2], r[3], r[4]), float(r[5])) for r in rows]
+
+    def window(self, corpus_id: str, chunk: Chunk, radius: int) -> str:
+        if radius <= 0:
+            return chunk.text
+        with self._pool.connection() as conn:
+            rows = conn.execute(
+                "select text from chunks where corpus_id = %s and doc_id = %s and ordinal between %s and %s "
+                "order by ordinal",
+                (corpus_id, chunk.doc_id, chunk.ordinal - radius, chunk.ordinal + radius),
+            ).fetchall()
+        return "\n\n".join(r[0] for r in rows) or chunk.text
 
     def get_many(self, corpus_id: str, chunk_ids: Sequence[str]) -> dict[str, Chunk]:
         if not chunk_ids:
             return {}
         with self._pool.connection() as conn:
             rows = conn.execute(
-                "select chunk_id, doc_id, ordinal, text from chunks where corpus_id = %s and chunk_id = any(%s)",
+                "select chunk_id, doc_id, ordinal, text, context from chunks "
+                "where corpus_id = %s and chunk_id = any(%s)",
                 (corpus_id, list(chunk_ids)),
             ).fetchall()
-        return {r[0]: Chunk(r[0], r[1], r[2], r[3]) for r in rows}
+        return {r[0]: Chunk(r[0], r[1], r[2], r[3], r[4]) for r in rows}
 
     def delete_corpus(self, corpus_id: str) -> None:
         with self._pool.connection() as conn:

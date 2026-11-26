@@ -121,7 +121,7 @@ class TestCompoundQuestions:
     def test_parts(self, question, parts):
         assert compound_parts(question) == parts
 
-    def test_extra_phrasings_widen_the_result(self):
+    def test_clauses_widen_the_result(self):
         index, emb = MemoryChunkIndex(), HashingEmbedder()
         words = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa"]
         chunks = [
@@ -130,7 +130,11 @@ class TestCompoundQuestions:
         index.add("c", chunks, emb.embed_documents([c.text for c in chunks]))
         retriever = HybridRetriever(index, emb, RetrievalConfig(top_k=3, compound_extra_k=2))
         assert len(retriever.retrieve("c", "printing")) == 3
-        assert len(retriever.retrieve("c", "printing", extra_phrasings=["kites"])) == 5
+        assert len(retriever.retrieve("c", "printing", extra_phrasings=["kites"], clauses=["kites"])) == 5
+        # A rephrasing of the same question is not a second question: it must not widen the quota,
+        # or an expander that always answers with two phrasings would grow every prompt.
+        only_more_ways = retriever.retrieve("c", "printing", extra_phrasings=["kites"])
+        assert len(only_more_ways) == 3
 
 
 def test_tagged_question_cannot_escape_its_tags():

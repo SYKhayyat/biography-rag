@@ -181,15 +181,19 @@ class TestRetriever:
     def test_alt_question_finds_first_person_text(self):
         index = MemoryChunkIndex()
         emb = HashingEmbedder()
-        own = Chunk("d01-0005", "d01", 5, "My wife Goldie and I married in Jerusalem.")
+        own = Chunk("d01-0006", "d01", 6, "My wife Goldie and I married in Jerusalem.")
+        # Ordinals are unique per document (the chunker numbers them 0..n), so the neighbour
+        # window never has two chunks to choose between at one place.
         named = [Chunk(f"d01-000{c}", "d01", i, f"Ann Lee met the {c} committee.") for i, c in enumerate("abcdef")]
         chunks = [own, *named]
         index.add("c", chunks, emb.embed_documents([c.text for c in chunks]))
         retriever = HybridRetriever(index, emb, RetrievalConfig(top_k=3))
         question = "Who was the spouse of Ann Lee?"
-        assert retriever.retrieve("c", question)[0].chunk.chunk_id != own.chunk_id
+        plain = [h.chunk.chunk_id for h in retriever.retrieve("c", question)]
+        assert own.chunk_id not in plain  # the memoir says "I"; the name does not find it
         hits = retriever.retrieve("c", question, alt_question="Who was my wife?")
-        assert hits[0].chunk.chunk_id == own.chunk_id and hits[0].keyword_rank == 1
+        mine = next((h for h in hits if h.chunk.chunk_id == own.chunk_id), None)
+        assert mine is not None and mine.keyword_rank == 1
 
 
 def answer_then(verdict: str):

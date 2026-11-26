@@ -43,8 +43,19 @@ class Settings(BaseSettings):
     chunk_overlap: int = 200
     top_k: int = 6
     candidate_k: int = 24  # per arm, before fusion
-    min_similarity: float = 0.0  # drop vector hits below this cosine (0 = off)
+    # Cosine floor for the dense arm, applied in SQL before the row limit. 0 = off. The value is
+    # per embedder: run `scripts/calibrate_similarity.py` and put a number here that sits above
+    # the canary questions and below the real ones. text-embedding-3-small: ~0.25.
+    min_similarity: float = 0.25
     max_number_density: float | None = 0.15  # skip back-of-book index chunks (numbers per word)
+    max_per_doc: int = 2  # passages from one book in the top-k; 0 = no cap
+    neighbour_radius: int = 1  # adjacent passages sent along with each hit; 0 = hit alone
+    # A second model call reorders the pool before the top-k is cut. Costs one call per question.
+    rerank: bool = False
+    rerank_pool: int = 12
+    # One more call writes a hypothetical passage and two rephrasings to search with. Costs one
+    # call per question; the invented text is only ever a query, never evidence.
+    expand_queries: bool = False
     query_concurrency: int = 4
     verify_with_llm: bool = True
     # The judge that audits the woven story. Empty -> the model that wrote it.

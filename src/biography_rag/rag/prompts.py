@@ -71,6 +71,32 @@ sentence attaches to another is not supported.
 Reply with JSON only: a list of objects {"i": <sentence number>, "supported": true|false, \
 "reason": "<short reason if false>"}. Include every sentence."""
 
+RERANK_SYSTEM = """You rank passages by how likely they are to answer one question. You see the \
+question and numbered passages from books about {person}. You do not answer the question.
+
+A passage ranks high when it states the fact the question asks for (or part of it). It ranks low \
+when it only mentions the same person, place or topic, or is a table of contents, index, preface \
+or list of works. When the question asks two things, high means it answers one of them.
+
+Reply with the passage numbers only, best first, as a JSON list of integers, for example \
+[4, 1, 7]. Include every passage exactly once. No other text."""
+
+EXPANSION_SYSTEM = """You prepare search queries for a system that finds passages in books about \
+{person}. You are NOT given the books and must not rely on knowing anything about {person}.
+
+Do two things:
+
+PASSAGE: write 2 to 4 sentences of the kind a biography of {person} would contain on this topic \
+— the vocabulary, names of the era and phrasing such a book uses ("he was bound apprentice", \
+"she was born at"). Invent plausible content: it is used to search, never shown to a reader, and \
+no fact from it is ever reported as an answer. Do not hedge or explain.
+
+PHRASINGS: 2 different ways a biography's author might put the question, one per line, each a \
+short statement or question using other words ("bound apprentice to a printer", "learned the \
+trade in his brother's shop").
+
+Reply in exactly that format, with nothing else."""
+
 
 FIRST_PERSON_MARK = "(first person)"
 
@@ -83,8 +109,12 @@ def tagged_question(question: str) -> str:
 
 
 def _snippets(chunks: Sequence[Chunk], first_person_docs: Collection[str] = ()) -> str:
+    """Snippets as the model reads them. The context line (book, chapter) is what lets it tell a
+    son from a grandson, and one witness from another, without any of it counting as a quote."""
     return "\n\n".join(
-        f"[{c.chunk_id}]{' ' + FIRST_PERSON_MARK if c.doc_id in first_person_docs else ''}\n{c.text}" for c in chunks
+        f"[{c.chunk_id}]{' ' + FIRST_PERSON_MARK if c.doc_id in first_person_docs else ''}"
+        f"{' (' + c.context + ')' if c.context else ''}\n{c.text}"
+        for c in chunks
     )
 
 
@@ -129,4 +159,23 @@ def judge_messages(sentences: Sequence[tuple[str, Sequence[str]]], chunks: Seque
     return [
         {"role": "system", "content": JUDGE_SYSTEM},
         {"role": "user", "content": f"Snippets:\n\n{_snippets(chunks)}\n\nSentences:\n{numbered}"},
+    ]
+
+
+def rerank_messages(question: str, chunks: Sequence[Chunk]) -> list[Message]:
+    """Numbered candidates, no ids: the model returns numbers, so a malformed id cannot be
+    mistaken for a real one, and the mapping back is positional."""
+    listed = "\n\n".join(
+        f"{i}.{' (' + c.context + ')' if c.context else ''}\n{c.text}" for i, c in enumerate(chunks, 1)
+    )
+    return [
+        {"role": "system", "content": RERANK_SYSTEM.format(person="the subject")},
+        {"role": "user", "content": f"Question: {tagged_question(question)}\n\nPassages:\n\n{listed}"},
+    ]
+
+
+def expansion_messages(person: str, question: str) -> list[Message]:
+    return [
+        {"role": "system", "content": EXPANSION_SYSTEM.format(person=person)},
+        {"role": "user", "content": f"Question: {tagged_question(question)}"},
     ]

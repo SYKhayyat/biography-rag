@@ -124,3 +124,71 @@ def test_full_story_on_postgres(stores, bio_file, chat):
     assert run.answers[0].found and run.verification.flagged == []
     assert sum(e["type"] == "query" for e in runs.events(run.run_id)) == 20
     ingest.delete(corpus.corpus_id)
+
+
+def test_filters_apply_before_the_row_limit(stores):
+    """An index page matches every question. The floor and the index filter must run in SQL, so
+    the limit counts rows that survive them."""
+    from biography_rag.store.base import SearchFilters
+
+    corpora, index, _ = stores
+    corpus = new_corpus(corpora)
+    emb = HashingEmbedder()
+    index_page = "Franklin, Benjamin: born 2, 7, 11, 14, 19; Boston 4, 9, 12, 22, 31, 36, 41, 44."
+    chunks = [
+        Chunk("d01-0000", "d01", 0, index_page),
+        Chunk("d01-0001", "d01", 1, "Franklin was born in Boston in the year seventeen oh six."),
+        Chunk("d01-0002", "d01", 2, "He was born in Boston and went to school there."),
+    ]
+    index.add(corpus.corpus_id, chunks, emb.embed_documents([c.embed_input for c in chunks]))
+    filters = SearchFilters(min_similarity=0.0, max_number_density=0.15)
+    query = emb.embed_query(index_page)  # the index page is its own best match, by construction
+    unfiltered = index.vector_search(corpus.corpus_id, query, 3)
+    assert unfiltered[0][0].chunk_id == "d01-0000"
+    hits = index.vector_search(corpus.corpus_id, query, 2, filters)
+    assert [c.chunk_id for c, _ in hits] == ["d01-0001", "d01-0002"]  # two real passages, not one
+    assert index.keyword_search(corpus.corpus_id, "born Boston", 2, filters)[0][0].chunk_id != "d01-0000"
+    index.delete_corpus(corpus.corpus_id)
+    corpora.delete(corpus.corpus_id)
+
+
+def test_keyword_search_ranks_all_terms_first(stores):
+    """An OR query lets one common word carry a hit. Documents holding every term come first."""
+    corpora, index, _ = stores
+    corpus = new_corpus(corpora)
+    emb = HashingEmbedder()
+    chunks = [
+        Chunk("d01-0000", "d01", 0, "Kite kite kite kite kite kite, over and over, a kite party."),
+        Chunk("d01-0001", "d01", 1, "He flew a kite in a thunderstorm to show that lightning is electricity."),
+        Chunk("d01-0002", "d01", 2, "The almanac sold well in every colony for many years."),
+    ]
+    index.add(corpus.corpus_id, chunks, emb.embed_documents([c.embed_input for c in chunks]))
+    hits = [c.chunk_id for c, _ in index.keyword_search(corpus.corpus_id, "kite lightning", 3)]
+    assert hits[0] == "d01-0001"  # the only chunk with both terms
+    assert "d01-0002" not in hits  # no term at all
+    index.delete_corpus(corpus.corpus_id)
+    corpora.delete(corpus.corpus_id)
+
+
+def test_window_reads_neighbours_in_reading_order(stores):
+    corpora, index, _ = stores
+    corpus = new_corpus(corpora)
+    emb = HashingEmbedder()
+    chunks = [
+        Chunk("d01-0000", "d01", 0, "First passage of book one.", context="Book One"),
+        Chunk("d01-0001", "d01", 1, "Second passage of book one.", context="Book One"),
+        Chunk("d01-0002", "d01", 2, "Third passage of book one.", context="Book One"),
+        Chunk("d02-0000", "d02", 0, "First passage of book two."),
+    ]
+    index.add(corpus.corpus_id, chunks, emb.embed_documents([c.embed_input for c in chunks]))
+    window = index.window(corpus.corpus_id, chunks[1], 1)
+    assert window.split("\n\n") == [
+        "First passage of book one.",
+        "Second passage of book one.",
+        "Third passage of book one.",
+    ]
+    assert index.window(corpus.corpus_id, chunks[1], 0) == chunks[1].text
+    assert index.window(corpus.corpus_id, chunks[3], 1) == chunks[3].text  # no neighbours in that book
+    assert index.get_many(corpus.corpus_id, ["d01-0000"])["d01-0000"].context == "Book One"
+    index.delete_corpus(corpus.corpus_id)
+    corpora.delete(corpus.corpus_id)

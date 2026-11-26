@@ -100,7 +100,8 @@ class FakeChatSource:
         return chat
 
 
-_SNIPPET = re.compile(r"\[(d\d{2}-\d{4})\]\n(.+?)(?=\n\n\[d\d{2}-\d{4}\]\n|\Z)", re.S)
+# A snippet header is "[d01-0042] (book — chapter)" or "[d01-0042] (first person) (book)".
+_SNIPPET = re.compile(r"\[(d\d{2}-\d{4})\][^\n]*\n(.+?)(?=\n\n\[d\d{2}-\d{4}\]|\Z)", re.S)
 
 
 def question_of(user: str) -> str:
@@ -115,6 +116,12 @@ def extractive_responder(messages: list[Message]) -> str:
     if system.startswith("You audit"):
         n = len(re.findall(r"^\d+\. ", user, re.M))
         return "[" + ",".join(f'{{"i": {i}, "supported": true}}' for i in range(1, n + 1)) + "]"
+    if system.startswith("You rank passages"):
+        n = len(re.findall(r"^\d+\.", user, re.M))
+        return "[" + ", ".join(str(i) for i in range(1, n + 1)) + "]"
+    if system.startswith("You prepare search queries"):
+        question = question_of(user)
+        return f"PASSAGE: A biography would say that this relates to {question}\nPHRASINGS: - about {question}"
     if system.startswith("You check whether quoted evidence"):
         question = question_of(user)
         quotes = user.split("Quotes:", 1)[1]

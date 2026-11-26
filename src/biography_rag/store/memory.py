@@ -12,7 +12,8 @@ from typing import Any
 import numpy as np
 
 from biography_rag.domain import Chunk, Corpus, StoryRun
-from biography_rag.text import content_terms
+from biography_rag.store.base import NO_FILTERS, SearchFilters
+from biography_rag.text import content_terms, number_density
 
 
 class MemoryCorpusRepository:
@@ -62,11 +63,20 @@ class _Bm25:
             out.append(s)
         return out
 
+    def matches_all(self, query: str) -> list[bool]:
+        """Whether the document contains every query term, the way the Postgres arm does with
+        an AND tsquery: those documents rank first, whatever their BM25 score."""
+        terms = set(content_terms(query))
+        if not terms:
+            return [False] * len(self.docs)
+        return [terms <= set(doc) for doc in self.docs]
+
 
 class MemoryChunkIndex:
     def __init__(self) -> None:
         self._chunks: dict[str, list[Chunk]] = defaultdict(list)
         self._vectors: dict[str, list[list[float]]] = defaultdict(list)
+        self._density: dict[str, list[float]] = defaultdict(list)  # numbers per word, per chunk
         self._bm25: dict[str, _Bm25] = {}
         self._lock = threading.Lock()
 
@@ -76,26 +86,57 @@ class MemoryChunkIndex:
         with self._lock:
             self._chunks[corpus_id].extend(chunks)
             self._vectors[corpus_id].extend(list(v) for v in vectors)
+            self._density[corpus_id].extend(number_density(c.text) for c in chunks)
             self._bm25.pop(corpus_id, None)
 
-    def vector_search(self, corpus_id: str, vector: Sequence[float], k: int) -> list[tuple[Chunk, float]]:
+    def _keep(self, corpus_id: str, indexes: Sequence[int], filters: SearchFilters) -> list[int]:
+        """Index pages are excluded here, before the limit is taken, exactly as the SQL does."""
+        limit = filters.max_number_density
+        if limit is None:
+            return list(indexes)
+        density = self._density[corpus_id]
+        return [i for i in indexes if density[i] <= limit]
+
+    def vector_search(
+        self, corpus_id: str, vector: Sequence[float], k: int, filters: SearchFilters = NO_FILTERS
+    ) -> list[tuple[Chunk, float]]:
         with self._lock:
             chunks, vectors = self._chunks.get(corpus_id, []), self._vectors.get(corpus_id, [])
             if not chunks:
                 return []
             sims = np.asarray(vectors, dtype=np.float32) @ np.asarray(vector, dtype=np.float32)
-        order = np.argsort(-sims)[:k]
+        order = [int(i) for i in np.argsort(-sims)]
+        order = self._keep(corpus_id, order, filters)
+        order = [i for i in order if float(sims[i]) >= filters.min_similarity][:k]
         return [(chunks[i], float(sims[i])) for i in order]
 
-    def keyword_search(self, corpus_id: str, text: str, k: int) -> list[tuple[Chunk, float]]:
+    def keyword_search(
+        self, corpus_id: str, text: str, k: int, filters: SearchFilters = NO_FILTERS
+    ) -> list[tuple[Chunk, float]]:
         with self._lock:
             chunks = self._chunks.get(corpus_id, [])
             if not chunks:
                 return []
             bm25 = self._bm25.get(corpus_id) or self._bm25.setdefault(corpus_id, _Bm25(chunks))
         scores = bm25.scores(text)
-        ranked = sorted(((s, i) for i, s in enumerate(scores) if s > 0), reverse=True)[:k]
-        return [(chunks[i], s) for s, i in ranked]
+        full = bm25.matches_all(text)
+        # Documents holding every query term first, then by BM25, then the shorter document: the
+        # same three-key order the SQL uses (an OR query alone lets one common word — "family",
+        # "born" — carry a hit).
+        ranked = sorted(((full[i], s, -bm25.lengths[i], -i) for i, s in enumerate(scores) if s > 0), reverse=True)
+        order = self._keep(corpus_id, [-t[3] for t in ranked], filters)[:k]
+        return [(chunks[i], scores[i]) for i in order]
+
+    def window(self, corpus_id: str, chunk: Chunk, radius: int) -> str:
+        if radius <= 0:
+            return chunk.text
+        with self._lock:
+            near = [
+                c
+                for c in self._chunks.get(corpus_id, [])
+                if c.doc_id == chunk.doc_id and chunk.ordinal - radius <= c.ordinal <= chunk.ordinal + radius
+            ]
+        return "\n\n".join(c.text for c in sorted(near, key=lambda c: c.ordinal)) or chunk.text
 
     def get_many(self, corpus_id: str, chunk_ids: Sequence[str]) -> dict[str, Chunk]:
         wanted = set(chunk_ids)
@@ -106,6 +147,7 @@ class MemoryChunkIndex:
         with self._lock:
             self._chunks.pop(corpus_id, None)
             self._vectors.pop(corpus_id, None)
+            self._density.pop(corpus_id, None)
             self._bm25.pop(corpus_id, None)
 
 

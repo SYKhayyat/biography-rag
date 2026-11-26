@@ -80,6 +80,9 @@ def build_container(
         candidate_k=settings.candidate_k,
         min_similarity=settings.min_similarity,
         max_number_density=settings.max_number_density,
+        max_per_doc=settings.max_per_doc,
+        neighbour_radius=settings.neighbour_radius,
+        rerank_pool=settings.rerank_pool,
     )
     ingest = IngestService(
         corpora,
@@ -102,6 +105,8 @@ def build_container(
             max_compare_targets=settings.max_compare_targets,
             judge_provider=settings.judge_provider,
             judge_model=settings.judge_model,
+            rerank=settings.rerank,
+            expand_queries=settings.expand_queries,
         ),
     )
     return Container(

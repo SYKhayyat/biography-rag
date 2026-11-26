@@ -30,9 +30,11 @@ from biography_rag.embeddings.registry import EmbedderRegistry
 from biography_rag.ingest.chunker import Chunker
 from biography_rag.ingest.loaders import LOADERS, extract_text, looks_binary
 from biography_rag.llm.base import ChatModelSource, reply_model
+from biography_rag.rag.expansion import NO_EXPANSION, QueryExpander
 from biography_rag.rag.generation import QueryAnswerer, StoryWeaver
 from biography_rag.rag.grounding import focus_text
 from biography_rag.rag.queries import QUERIES
+from biography_rag.rag.rerank import ChatReranker
 from biography_rag.rag.retriever import HybridRetriever, RetrievalConfig, compound_parts
 from biography_rag.rag.verification import JudgedVerifier, LexicalVerifier, Verifier, published_text
 from biography_rag.runlog import RunLogger
@@ -142,7 +144,9 @@ class IngestService:
             embedder = self._embedders.by_id(corpus.embedder_id)
             for start in range(0, len(chunks), self._batch):
                 batch = chunks[start : start + self._batch]
-                self._index.add(corpus_id, batch, embedder.embed_documents([c.text for c in batch]))
+                # The book and chapter go into the embedding input, not into ``text``: retrieval
+                # can use them, and a quote is still checked against the passage alone.
+                self._index.add(corpus_id, batch, embedder.embed_documents([c.embed_input for c in batch]))
             corpus = replace(
                 corpus,
                 status=CorpusStatus.READY,
@@ -197,6 +201,8 @@ class StoryConfig:
     max_compare_targets: int = 6
     judge_provider: str = ""  # empty: the judge is the model that wrote the text
     judge_model: str = ""
+    rerank: bool = False  # a model call reorders the retrieval pool before top-k is cut
+    expand_queries: bool = False  # a model call writes a search passage and two rephrasings
 
 
 @dataclass(frozen=True)
@@ -296,11 +302,12 @@ class StoryService:
         query_id: int,
         question: str,
         keywords: str,
+        expander: QueryExpander | None = None,
     ) -> tuple[QueryAnswer, list[Chunk]]:
         """One question, end to end. A failure (provider error, timeout) becomes an unanswered
         topic with reason "error", so one bad call cannot sink a 20-question story."""
         try:
-            return self._answer_one_inner(run, retriever, answerer, query_id, question, keywords)
+            return self._answer_one_inner(run, retriever, answerer, query_id, question, keywords, expander)
         except Exception as exc:
             log.exception("run %s: query %s failed", run.run_id, query_id)
             error = f"{type(exc).__name__}: {exc}"[:500]
@@ -318,13 +325,23 @@ class StoryService:
         query_id: int,
         question: str,
         keywords: str,
+        expander: QueryExpander | None = None,
     ) -> tuple[QueryAnswer, list[Chunk]]:
         # A memoir says "I", rarely the name: also search the question rephrased in the first person.
         alt = to_first_person(question, run.person) if answerer.first_person_docs else None
         alt = alt if alt != question else None
         # "X, and Y?" asks two things: search each half too, and keep a few more chunks.
         parts = compound_parts(question)
-        retrieved = retriever.retrieve(run.corpus_id, question, keywords, alt_question=alt, extra_phrasings=parts)
+        expansion = expander.expand(run.person, question) if expander else NO_EXPANSION
+        retrieved, rerank_note = retriever.retrieve_logged(
+            run.corpus_id,
+            question,
+            keywords,
+            alt_question=alt,
+            extra_phrasings=[*parts, *expansion.phrasings],
+            hypothetical=expansion.hypothetical,
+            clauses=parts,  # only a question that asks two things widens the quota
+        )
         chunks = [r.chunk for r in retrieved]
         answer, exchange = answerer.answer(query_id, run.person, question, chunks)
         lexical = LexicalVerifier().verify(
@@ -338,6 +355,14 @@ class StoryService:
             first_person_question=alt,
             compound_parts=parts or None,
             keyword_hints=keywords,
+            expansion={
+                "hypothetical": expansion.hypothetical or None,
+                "phrasings": list(expansion.phrasings) or None,
+                "note": expansion.note,
+            }
+            if expander
+            else None,
+            rerank_note=rerank_note,
             retrieved=[
                 {
                     "chunk_id": r.chunk.chunk_id,
@@ -363,9 +388,15 @@ class StoryService:
 
     def _context(self, run: StoryRun, corpus: Corpus) -> tuple[HybridRetriever, QueryAnswerer]:
         embedder = self._embedders.by_id(corpus.embedder_id)
-        retriever = HybridRetriever(self._index, embedder, self._config.retrieval)
         chat = self._chats.create(run.provider, run.model)
+        reranker = ChatReranker(chat) if self._config.rerank else None
+        retriever = HybridRetriever(self._index, embedder, self._config.retrieval, reranker)
         return retriever, QueryAnswerer(chat, first_person_docs=corpus.first_person_docs)
+
+    def _expander(self, run: StoryRun) -> QueryExpander | None:
+        if not self._config.expand_queries:
+            return None
+        return QueryExpander(self._chats.create(run.provider, run.model))
 
     def _log_start(self, run: StoryRun, corpus: Corpus) -> None:
         r = self._config.retrieval
@@ -386,6 +417,11 @@ class StoryService:
                 "candidate_k": r.candidate_k,
                 "min_similarity": r.min_similarity,
                 "max_number_density": r.max_number_density,
+                "max_per_doc": r.max_per_doc,
+                "neighbour_radius": r.neighbour_radius,
+                "rerank": self._config.rerank,
+                "rerank_pool": r.rerank_pool if self._config.rerank else None,
+                "expand_queries": self._config.expand_queries,
             },
             verify_with_llm=self._config.verify_with_llm,
             judge=dict(zip(("provider", "model"), self._judge_target(run.provider, run.model), strict=True))
@@ -491,11 +527,12 @@ class StoryService:
 
     def _execute_story(self, run: StoryRun, corpus: Corpus) -> None:
         retriever, answerer = self._context(run, corpus)
+        expander = self._expander(run)
         lock = threading.Lock()
         results: list[tuple[QueryAnswer, list[Chunk]]] = []
 
         def work(q: QueryTemplate) -> None:
-            result = self._answer_one(run, retriever, answerer, q.query_id, q.render(run.person), q.keywords)
+            result = self._answer_one(run, retriever, answerer, q.query_id, q.render(run.person), q.keywords, expander)
             with lock:
                 results.append(result)
                 run.progress = len(results)
@@ -529,7 +566,7 @@ class StoryService:
 
     def _execute_ask(self, run: StoryRun, corpus: Corpus) -> None:
         retriever, answerer = self._context(run, corpus)
-        answer, chunks = self._answer_one(run, retriever, answerer, 0, run.question or "", "")
+        answer, chunks = self._answer_one(run, retriever, answerer, 0, run.question or "", "", self._expander(run))
         chunk_map = {c.chunk_id: c for c in chunks}
         result = self._verifier(run.provider, run.model).verify(answer.answer or "", chunk_map, set(chunk_map))
         self._log_verification(run, result)

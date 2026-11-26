@@ -279,3 +279,30 @@ available.
 5. Tie the answer text to the quotes (4) and de-pad citations (8).
 6. Upload hygiene and corpus cleanup (9, 13, 16).
 7. Log the model that actually answered (12); load-test the pool (14).
+
+## Follow-up: retrieval review
+
+A second read of the retrieval path (after the fixes above) found six things worth changing. They
+are all in the current code; the numbers below come from the Franklin corpus.
+
+| Was | Now | Why |
+|---|---|---|
+| Cosine floor and index-page filter applied *after* `LIMIT candidate_k` | Both are `WHERE` clauses (and the memory index mirrors it) | Filtering after the limit means a question whose nearest neighbours are index pages returns fewer than `top_k` passages, or none, and "not in the sources" is then blamed on the sources |
+| `MIN_SIMILARITY=0` by default: no cut anywhere | 0.25, and a calibration script that measures it per embedder | Retrieval could never say "nothing relevant"; that burden fell entirely on the flaky YES/NO check (#3) |
+| RRF summed over arms | Mean over arms | Summed, a passage ranked #20 by six phrasings beat one ranked #1 by one phrasing: multi-part questions drifted to passages that vaguely matched everything |
+| FTS query OR-ed, ranked by `ts_rank_cd` only | Passages holding *every* term rank first, then `ts_rank_cd`, then the shorter passage | One common word ("family", "born") could carry a hit |
+| No diversity control over six biographies of one person | `MAX_PER_DOC=2`, never below an even share of `top_k` | The top 6 were often the same anecdote told in three books |
+| Chunks were anonymous slices; a quote had to fall inside one 1,200-char window | Each chunk carries book + chapter `context`, and is widened to its neighbours before the model reads it | Two real misattributions (son/grandson, "Mrs. Franklin" as a name) were exactly this; and a pronoun whose antecedent sat in the previous chunk made answerable questions fail the verbatim gate |
+
+Two more stages exist but are **off by default**, because each costs one model call per question:
+`RERANK` (reorders the fused pool; reorders only, so it cannot lose recall) and `EXPAND_QUERIES`
+(writes a hypothetical passage plus two rephrasings — HyDE; the invented text is a query, never
+evidence, and a test asserts it never reaches the answer prompt).
+
+Measured on two of the six books (1,545 passages, `text-embedding-3-small`): the rank-1 cosine is
+0.582–0.724 for the 20 fixed questions and at most 0.560 for the canaries, and the whole
+rank-1…24 pool stays above 0.5. So 0.25 filters nothing on a healthy corpus — it bites on
+unrelated text — while a floor at the canary ceiling (0.57) would have looked like a good refusal
+test and would have left the dense arm with one or two hits. That is why the default is a noise
+floor, not a refusal test: refusal stays with the evidence gate, which has the quotes in front of
+it.

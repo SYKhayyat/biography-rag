@@ -26,17 +26,25 @@ The manual review found three sentences the automated checks passed:
 
 Details and the run history are in [`findings.md`](logs/submission/findings.md).
 
+The table above was measured before the retrieval changes described under [Retrieval](#retrieval)
+(context in the embedding text, the cosine floor, windows, the per-book cap). Re-run
+`scripts/run_submission.py` for numbers under the current code; a corpus ingested earlier must be
+re-uploaded, since passages now carry a book/chapter context line and a stored index-page density.
+
 ## How it works
 
 ```
 upload (.txt .md .html .pdf)
   └─ normalize, strip Gutenberg boilerplate
   └─ chunk: paragraph/sentence aware, ~1200 chars, 200 overlap, ids d01-0042
+            each chunk keeps its book title and chapter heading as `context`
   └─ embed (OpenAI text-embedding-3-small | local fastembed) → Postgres + pgvector
 
 for each of 20 questions, with {person} filled in:
   retrieve   hybrid: pgvector cosine + Postgres full-text, fused by reciprocal rank (top 6)
-             skip back-of-book index pages (numbers/words > 0.15)
+             cosine floor and index-page filter run in SQL, before the row limit
+             at most MAX_PER_DOC passages per book; each hit widened to its neighbours
+             optional: a rerank call over the pool, and a written-out answer (HyDE) to search
   answer     model must reply  EVIDENCE: "<exact quote ≤40 words>" [chunk-id] …  then  ANSWER:
   gate       deterministic: each quote must align with the chunk it cites
              (≥90% of its words in in-order runs of ≥3 words), and uncited sentences are dropped
@@ -48,6 +56,49 @@ weave        story from the findings only; skipped topics left out; every senten
 verify       per sentence: lexical check (cited ids retrieved? unknown names/numbers?)
              + LLM judge against the cited chunks → TRACED / UNCITED / UNSUPPORTED / JUDGE_FLAGGED
 ```
+
+### Retrieval
+
+Ranking is where most of the accuracy lives, so the retrieval stage is written down here in full.
+Everything below is measureable per corpus and every knob is an environment variable.
+
+- **Two arms, one vote each.** Dense (pgvector cosine) finds paraphrases; keyword (Postgres
+  full-text) finds rare exact words. They are fused by reciprocal rank, whose `1/(60+rank)` needs
+  no calibration between arms or between embedders. Fusion takes the **mean** over arms, not the
+  sum: summed, a passage ranked #20 by six phrasings beat one ranked #1 by a single phrasing, so
+  multi-part questions drifted toward passages that vaguely matched everything.
+- **A cosine floor, applied in SQL.** `MIN_SIMILARITY` (default 0.25) discards weak dense hits
+  *inside* the query, so a discarded row never consumes one of the `k` slots. This is the only
+  place where the app can conclude "nothing relevant" without asking a model. Set it per
+  embedder with `scripts/calibrate_similarity.py`, which prints the cosine at ranks 1, 6 and 24 for
+  each of the 20 questions, the same for canaries the books cannot answer, and how much of the
+  candidate pool survives a given floor. On the Franklin corpus the whole pool sits above 0.5, so
+  the default 0.25 filters nothing there and only bites on unrelated text; a floor at the canary
+  ceiling would look like a good refusal test and would strip the dense arm to one or two hits.
+- **Index pages are dropped before the limit**, not after: a back-of-book index names every topic
+  and states nothing, and filtering it out *after* `LIMIT 24` leaves fewer than 6 real passages.
+  The density (`numbers / words`) is computed once at ingest and stored with the passage.
+- **Keyword search is two-stage.** The OR query alone lets one common word ("family", "born")
+  carry a hit, so passages holding *every* term are ranked first, then the rest by `ts_rank_cd`,
+  then the shorter passage.
+- **No book fills the context.** `MAX_PER_DOC` (default 2, never below an even share of `k`) keeps
+  six biographies of one person from answering with the same anecdote told six ways.
+- **Each hit is widened to its neighbours** (`NEIGHBOUR_RADIUS`, default 1) before the model reads
+  it. The answer gate demands verbatim quotes, and a pronoun whose antecedent sits in the previous
+  chunk used to make an answerable question fail. The citation id still points at the passage
+  itself; the gate checks quotes against the window. Small chunks with wide parents — set
+  `CHUNK_SIZE=400 NEIGHBOUR_RADIUS=3` for the classic small-to-big arrangement.
+- **The book and chapter travel with the passage.** Each chunk carries `context` ("Familiar Letters
+  — Paris"), which is prefixed to the text for embedding and shown beside the snippet in the
+  prompt, so the model can tell a son from a grandson and one witness from another. Quotes are
+  still checked against the passage alone, never against the context line.
+- **Two optional model calls**, both off by default because they cost one call per question:
+  - `RERANK=true` reorders the fused pool of `RERANK_POOL` passages before the top-k is cut. It
+    reorders only, so it can improve precision and cannot lose recall; a failed or unparseable
+    reply keeps the fused order.
+  - `EXPAND_QUERIES=true` writes a hypothetical biography passage (HyDE) and two rephrasings. The
+    invented text is a **query only**: it never reaches the answer prompt and is never evidence.
+
 
 ### Why the gate and the check
 
@@ -94,6 +145,8 @@ Reproduce the hand-in artefacts:
 ```bash
 uv run python scripts/fetch_corpus.py        # 6 Gutenberg biographies → corpus/raw/
 uv run python scripts/run_submission.py      # ingest + story + 3 canaries → logs/submission/
+uv run python scripts/calibrate_similarity.py --person "Benjamin Franklin" corpus/raw/*.txt
+                                             # top cosine per question vs per canary → MIN_SIMILARITY
 ```
 
 Tests: `uv run pytest`. The Postgres tests run when `TEST_DATABASE_URL` is set; see `scripts/test_postgres.sh`. Lint: `uv run ruff check`.

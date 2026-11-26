@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 
@@ -22,12 +23,23 @@ class SourceDocument:
 
 @dataclass(frozen=True)
 class Chunk:
-    """A retrievable slice of a document. ``chunk_id`` is what citations point at."""
+    """A retrievable slice of a document. ``chunk_id`` is what citations point at.
+
+    ``context`` says where the slice comes from (book title and, when one was found, the chapter
+    heading above it). It is prefixed to the text for embedding and shown next to the snippet in
+    the answer prompt, so the model can tell a son from a grandson and one book from another. It
+    is *not* part of ``text``: quotes are still checked against the passage itself."""
 
     chunk_id: str  # "d01-0042"
     doc_id: str
     ordinal: int
     text: str
+    context: str = ""  # e.g. "Familiar Letters — Chapter III: Paris"
+
+    @property
+    def embed_input(self) -> str:
+        """What the embedder sees: the context line, then the passage."""
+        return f"{self.context}\n\n{self.text}" if self.context else self.text
 
 
 @dataclass(frozen=True)
@@ -37,6 +49,26 @@ class RetrievedChunk:
     cosine: float | None = None  # vector similarity, when the vector arm found it
     vector_rank: int | None = None
     keyword_rank: int | None = None
+
+
+def merge_windows(selected: Sequence[Chunk], radius: int, texts: Mapping[str, str]) -> list[Chunk]:
+    """Snippets to answer from: each selected chunk widened by ``radius`` neighbours on both sides.
+
+    ``texts`` maps a chunk id to its own widened text (supplied by the index, which is the only
+    thing that can read neighbours). Selection is swept in reading order per document, so two
+    neighbours that were both selected collapse into one window instead of the same paragraph
+    appearing twice in the prompt. Chunks that collapse lose their id: the model never saw it, so
+    it cannot cite it, and nothing it would have quoted is gone (it is inside the kept window).
+    """
+    out: list[Chunk] = []
+    covered: dict[str, int] = {}  # doc_id -> highest ordinal already inside a kept window
+    for chunk in sorted(selected, key=lambda c: (c.doc_id, c.ordinal)):
+        if chunk.ordinal <= covered.get(chunk.doc_id, -1):
+            continue
+        covered[chunk.doc_id] = chunk.ordinal + radius
+        widened = texts.get(chunk.chunk_id)
+        out.append(replace(chunk, text=widened) if widened else chunk)
+    return out
 
 
 class CorpusStatus(StrEnum):
